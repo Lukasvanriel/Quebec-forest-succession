@@ -55,6 +55,13 @@ bte3 <- filter_bte(data3, strict=TRUE)
 bte4 <- filter_bte(data4, strict=TRUE)
 bte5 <- filter_bte(data5, strict=TRUE)
 
+sum(is.na(bte4$GR_ESS))
+head(bte4[is.na(bte4$GR_ESS),], 20)
+
+plot(bte4[]$LONGI, bte4[]$LATIT)
+points(bte4[is.na(bte4$GR_ESS),]$LONGI, bte4[is.na(bte4$GR_ESS),]$LATIT, col="red", pch=0.1)
+table(bte4[is.na(bte4$GR_ESS),]$GR_ESS)
+
 #### Filter out plantations ####
 #TODO
 bte1_noP <- bte1 

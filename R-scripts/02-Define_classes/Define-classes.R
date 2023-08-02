@@ -19,6 +19,16 @@ bte4_noP <- bte4_noP %>%
 ### Combine data ####
 bte_all <- rbind(bte1_noP, bte2_noP, bte3_noP, bte4_noP, bte5_noP)
 
-most_prev <- bte_all |> 
+###There is a significant fraction of TESSELLE that are lacking Species information
+#TODO: Look into which to drop and which to keep
+bte <- bte_all |> filter(! is.na(GR_ESS))
+
+###Extract the most prevalent classes
+most_prev <- bte |> 
   count(GR_ESS) |> arrange(desc(n)) |> head(100)
 
+#Also considering only the dominant species
+bte <- bte |>
+  mutate(dom_sp = substr(GR_ESS,1, 2))
+
+table(bte$dom_sp)
