@@ -96,4 +96,4 @@ bte_all <- rbind(bte1_noP, bte2_noP, bte3_noP, bte4_noP, bte5_noP)
 bte <- bte_all |> filter(! is.na(GR_ESS))
 
 #### Write out combined data ####
-write.csv(bte_all, "../../../Data/BTE/bte_all.csv")
+write.csv(bte, "../../../Data/BTE/bte_all.csv")

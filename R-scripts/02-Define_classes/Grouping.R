@@ -1,3 +1,34 @@
+#### Define forest classes according to dominant species ####
+
+### Function that returns an integer vector dependend on provided classification (dataframe)
+
+#sp_list: vector of the species at different polygons
+#classes: dataframe with 2 columns: 
+#   cl: vector of the unique species found in sp_list
+#   msm: vector of integers to be associated with species in cl
+determine_sp_class <- function(sp_list, classes) {
+  int_class <- integer(length(sp_list))
+  for (i in 1:length(sp_list)) {
+    if (sp_list[i] %in% classes$cl) {
+      int_class[i] <- classes$msm[classes$cl == sp_list[i]]
+    }
+  }
+  int_class[int_class == 0] <- max(int_class) + 1
+  int_class
+}
+
+### Create necessary dataframes
+
+#1: Paper birch
+#2: Other shade intolerant species
+#3: Yellow birch
+#4: Sugar and red maple
+#5: Other deciduous
+#6: Balsam fir
+#7: Red and black spruce
+#8: Jack pine
+#9: Other coniferous
+
 class.list <- list()
 class.list[[1]] <- c("BB", 1)
 class.list[[2]] <- c("FI", 2)

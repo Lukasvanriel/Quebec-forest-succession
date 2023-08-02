@@ -22,3 +22,13 @@ most_prev_dom <- bte |>
 
 #### Divide into classes as defined by Grouping.R ####
 
+#filter out species that have weird or no documentation
+bte_filt <- bte |>
+  filter(! dom_sp %in% 
+           c("TR", "MS", "C", "M", "R", "FS", "MH", "SR", "MX", "PU", "RR", "P", "BG", "PS", "F"))
+
+# Create the numbered class vector
+bte_filt$sp_class <- determine_sp_class(bte_filt$dom_sp, msm.class.normal)
+
+#table(bte_filt$dom_sp[test==10])
+
