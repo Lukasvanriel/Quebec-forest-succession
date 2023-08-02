@@ -21,3 +21,4 @@ bte_all <- rbind(bte1_noP, bte2_noP, bte3_noP, bte4_noP, bte5_noP)
 
 most_prev <- bte_all |> 
   count(GR_ESS) |> arrange(desc(n)) |> head(100)
+

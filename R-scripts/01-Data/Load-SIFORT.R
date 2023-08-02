@@ -18,7 +18,6 @@ data_raw4 <- sf::st_read("../../../Data/Raw/TES_PRG_4_DV.gdb.zip") |>
   st_drop_geometry()
 data_raw5 <- sf::st_read("../../../Data/Raw/TES_PRG_5_V0.gdb.zip") |> 
   st_drop_geometry()
-rm(data_raw5)
 
 #### Clean data ####
 #Drop rows without forest type attribution
