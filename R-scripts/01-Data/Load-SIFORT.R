@@ -8,16 +8,17 @@ library(rstudioapi)
 #### Read in raw data ####
 setwd(dirname(getActiveDocumentContext()$path))
 
-data_raw1 <- sf::st_read("../../Data/Raw/TES_PRG_1_DV.gdb.zip") |> 
+data_raw1 <- sf::st_read("../../../Data/Raw/TES_PRG_1_DV.gdb.zip") |> 
   st_drop_geometry()
-data_raw2 <- sf::st_read("../../Data/Raw/TES_PRG_2_DV.gdb.zip") |> 
+data_raw2 <- sf::st_read("../../../Data/Raw/TES_PRG_2_DV.gdb.zip") |> 
   st_drop_geometry()
-data_raw3 <- sf::st_read("../../Data/Raw/TES_PRG_3_DV.gdb.zip") |> 
+data_raw3 <- sf::st_read("../../../Data/Raw/TES_PRG_3_DV.gdb.zip") |> 
   st_drop_geometry()
-data_raw4 <- sf::st_read("../../Data/Raw/TES_PRG_4_DV.gdb.zip") |> 
+data_raw4 <- sf::st_read("../../../Data/Raw/TES_PRG_4_DV.gdb.zip") |> 
   st_drop_geometry()
-data_raw5 <- sf::st_read("../../Data/Raw/TES_PRG_5_V0.gdb.zip") |> 
+data_raw5 <- sf::st_read("../../../Data/Raw/TES_PRG_5_V0.gdb.zip") |> 
   st_drop_geometry()
+rm(data_raw5)
 
 #### Clean data ####
 #Drop rows without forest type attribution
@@ -64,8 +65,8 @@ bte4_noP <- bte4
 bte5_noP <- bte5 
 
 #### Write out resulting datasets ####
-write.csv(bte1_noP, "../../Data/BTE/bte1_noP.csv")
-write.csv(bte2_noP, "../../Data/BTE/bte2_noP.csv")
-write.csv(bte3_noP, "../../Data/BTE/bte3_noP.csv")
-write.csv(bte4_noP, "../../Data/BTE/bte4_noP.csv")
-write.csv(bte5_noP, "../../Data/BTE/bte5_noP.csv")
+write.csv(bte1_noP, "../../../Data/BTE/bte1_noP.csv")
+write.csv(bte2_noP, "../../../Data/BTE/bte2_noP.csv")
+write.csv(bte3_noP, "../../../Data/BTE/bte3_noP.csv")
+write.csv(bte4_noP, "../../../Data/BTE/bte4_noP.csv")
+write.csv(bte5_noP, "../../../Data/BTE/bte5_noP.csv")
