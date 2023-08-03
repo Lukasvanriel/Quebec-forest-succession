@@ -90,6 +90,8 @@ class.list[[55]] <- c("HG", 5)
 class.list[[56]] <- c("CP", 5)
 class.list[[57]] <- c("FO", 9)
 class.list[[58]] <- c("RZ", 9)
+class.list[[59]] <- c("GG", 9)
+class.list[[60]] <- c("RG", 9)
 
 msm.class.normal <- as.data.frame(do.call(rbind, class.list))
 colnames(msm.class.normal) <- c("cl", "msm")
