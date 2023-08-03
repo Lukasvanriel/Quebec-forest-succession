@@ -5,13 +5,12 @@ library(tidyverse)
 library(msm)
 
 ### Data ###
-#Load data
 data <- read.csv("../../../Data/BTE/bte_sp_class.csv")[,-1]
 
 ### Prepare data to be compatible with msm required format ###
 
 ## Add time column that indicates time since first observation
-#First remove
+#First remove rows that lack observation times
 #TODO: Try to find way to deal with NA's in observation times
 data <- data |>
   filter(! is.na(data$AN_PRO_SOU))
