@@ -78,16 +78,21 @@ for(tr in transitions[-c(1,2)]) {
   for(i in 1:nrow(data.tr)) { 
     if(data.tr$to[i] == tr %% 10) {
       tr.event[[i]] <- c(data.tr[i,-c(1,2)], 1)
-      names(tr.event[[i]])[length(tr.event[[i]])] <- "event"
+      names(tr.event[[i]])[length(tr.event[[i]])] <- "status"
     } else {
       tr.event[[i]] <- c(data.tr[i,-c(1,2)], 0)
       tr.event[[i]]$to <- tr %% 10
-      names(tr.event[[i]])[length(tr.event[[i]])] <- "event"
+      names(tr.event[[i]])[length(tr.event[[i]])] <- "status"
     }
   }
   event.list[[tr]] <- bind_rows(tr.event)
   write.csv(event.list[[tr]], 
             paste(here("Data", "BTE", "INLA", "Event_"), as.character(tr), ".csv", sep=""))
+}
+
+##Read in event datasets
+for(tr in transitions) {
+  event.list[[tr]] <- read.csv(paste(here("Data", "BTE", "INLA", "Event_"), as.character(tr), ".csv", sep=""))
 }
 
 #Create survival objects
@@ -102,7 +107,10 @@ a12 <- Surv10[[12]]
 a13 <- Surv10[[13]]
 inla.12 <- joint(formSurv=list(a12 ~ lat + lon),
                      basRisk = rep("weibullsurv", 1),
-                     dataSurv = list(event10[[12]]))
+                     dataSurv = list(event.list[[12]]))
+summary(inla.12)
+plot(inla.12)$Baseline
+plot(inla.12)$Outcomes
 
 inla.12.13 <- joint(formSurv=list(a12 ~ lat + lon,
                                   a13 ~ lat + lon),
