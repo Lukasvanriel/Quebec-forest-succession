@@ -3,9 +3,11 @@
 ### Load packages ###
 library(tidyverse)
 library(msm)
+library(stringr)
+library(here)
 
 ### Data ###
-data <- read.csv("../../../Data/BTE/bte_sp_class.csv")[,-1]
+data <- read.csv(here("Data", "BTE", "bte_sp_class.csv"))[,-1]
 
 ### Prepare data to be compatible with msm required format ###
 
@@ -44,8 +46,11 @@ data_mult_filt <- data_mult |>
   select(-unique)
 
 
-## Add Perturbation data
-#TODO
+###Add covariate data
+
+
+
+#@#@#@#@
 data_msm <- data_mult_filt
 
 #write.csv(data_msm, here("Data", "BTE", "bte_msm_ready.csv"))

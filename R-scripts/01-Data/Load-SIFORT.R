@@ -84,7 +84,7 @@ docu_filter <- docu[!duplicated(docu[,"GR_ESS"]),]
 filt_plantations <- function(data, docu) {
   ##Based on disturbance information:
   tess_origine <- data |>
-    filter(ORIGINE %in% c("P", "PA", "PE", "PL", "PLB", "PLN", "PLR", "PRR")) #TODO
+    filter(ORIGINE %in% c("P", "PA", "PE", "PL", "PLB", "PLN", "PLR", "PRR")) #TODO: ENS, REA?
   
   ##Based on Description of species class:
   data_doc <- plyr::join(data, docu, by="GR_ESS", type="left")
