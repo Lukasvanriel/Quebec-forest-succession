@@ -34,12 +34,6 @@ data.inla <- data.inla.inter |>
   ungroup() |>
   select(-TESSELLE, -trans)
 
-## normalise latitute and longitude
-
-data.inla <- data.inla |>
-  mutate(lon=(LONGI-mean(LONGI))/sd(LONGI)) |>
-  mutate(lat=(LATIT-mean(LATIT))/sd(LATIT))
-
 ### Run INLA ###
 
 ##State table:

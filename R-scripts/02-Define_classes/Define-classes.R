@@ -1,12 +1,7 @@
 #### Script to group species classes ####
 
 #### Load data ####
-bte1_noP <- read.csv(here("Data", "BTE", "bte1_noP.csv"))[,-1]
-bte2_noP <- read.csv(here("Data", "BTE", "bte2_noP.csv"))[,-1]
-bte3_noP <- read.csv(here("Data", "BTE", "bte3_noP.csv"))[,-1]
-bte4_noP <- read.csv(here("Data", "BTE", "bte4_noP.csv"))[,-1]
-bte5_noP <- read.csv(here("Data", "BTE", "bte5_noP.csv"))[,-1]
-bte <- read.csv(here("Data", "BTE", "bte_all.csv"))[,-1]
+bte <- read.csv(here("Data", "BTE", "bte_all_cov.csv"))[,-1]
 
 #### Extract the most prevalent classes ####
 most_prev <- bte |> 
@@ -34,6 +29,7 @@ source(here("R-scripts", "02-Define_classes", "Grouping.R"))
 bte_filt$sp_class <- determine_sp_class(bte_filt$dom_sp, msm.class.normal)
 
 table(bte_filt$sp_class)
-#bte_filt[bte_filt$sp_class == 10,]
+bte_filt[bte_filt$sp_class == 10,]$GR_ESS
 
-write.csv(bte_filt , here("Data", "BTE", "bte_sp_class.csv"))
+
+write.csv(bte_filt , here("Data", "BTE", "bte_cov_class.csv"))

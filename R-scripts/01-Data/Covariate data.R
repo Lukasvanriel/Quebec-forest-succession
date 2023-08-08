@@ -27,8 +27,6 @@ bte2_noP$cov_CMI <- sample.int(20, nrow(bte2_noP), replace = TRUE)
 bte3_noP$cov_CMI <- sample.int(20, nrow(bte3_noP), replace = TRUE)
 bte4_noP$cov_CMI <- sample.int(20, nrow(bte4_noP), replace = TRUE)
 bte5_noP$cov_CMI <- sample.int(20, nrow(bte5_noP), replace = TRUE)
-  
-
 
 #Soil
 
@@ -80,6 +78,10 @@ bte5_noP$cov_pert_sev <- factor(perturbation.matrix5[,2])
 ### Also update the combined dataset ###
 bte_all <- rbind(bte1_noP, bte2_noP, bte3_noP, bte4_noP, bte5_noP)
 
+###There is a significant fraction of TESSELLE that are lacking Species information
+#TODO: Look into which to drop and which to keep
+bte <- bte_all |> filter(! is.na(GR_ESS))
+
 #### Write out resulting datasets ####
 write.csv(bte1_noP, here("Data", "BTE", "bte1_noP_cov.csv"))
 write.csv(bte2_noP, here("Data", "BTE", "bte2_noP_cov.csv"))
@@ -87,4 +89,4 @@ write.csv(bte3_noP, here("Data", "BTE", "bte3_noP_cov.csv"))
 write.csv(bte4_noP, here("Data", "BTE", "bte4_noP_cov.csv"))
 write.csv(bte5_noP, here("Data", "BTE", "bte5_noP_cov.csv"))
 
-write.csv(bte_all, here("Data", "BTE", "bte_all_cov.csv"))
+write.csv(bte, here("Data", "BTE", "bte_all_cov.csv"))
