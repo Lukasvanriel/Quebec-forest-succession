@@ -12,7 +12,21 @@ bte5_noP <- read.csv(here("Data", "BTE", "bte5_noP.csv"))[,-1]
 
 #Climate
 
-#TODO: add 
+#TODO: fix covariates here
+sg <- readRDS(here("Data", "Raw", "Bioclim", "sg_complete.rds"))
+cmi <- readRDS(here("Data", "Raw", "Bioclim", "cmi_complete.rds"))
+
+cmi.tot <- cmi |>
+  select(cmi_sum, year, TESSELLE)
+
+test <- cmi.tot |>
+  filter(TESSELLE == bte4_noP$TESSELLE[1], as.numeric(year) < bte4_noP$AN_PRO_SOU[1], as.numeric(year) >= bte4_noP$AN_PRO_SOU[1] - 10) |>
+  summarise(av.cmi=mean(cmi_sum))
+
+# rolling_average <- cmi.tot %>%
+#   group_by(TESSELLE) %>%
+#   mutate(rolling_avg = rollapplyr(cmi_sum, width = 11, FUN = function(x) mean(tail(x, 10)), fill = NA))
+
 
 #Use random values for now
 library(random) #Remove
@@ -30,11 +44,11 @@ bte5_noP$cov_CMI <- sample.int(20, nrow(bte5_noP), replace = TRUE)
 
 #Soil
 
-bte1_noP$cov_soil <- str_sub(bte1_noP$STRATE_SIFORT, -3, -2)
-bte2_noP$cov_soil <- str_sub(bte2_noP$STRATE_SIFORT, -3, -2)
-bte3_noP$cov_soil <- str_sub(bte3_noP$STRATE_SIFORT, -3, -2)
-bte4_noP$cov_soil <- str_sub(bte4_noP$STRATE_SIFORT, -3, -2)
-bte5_noP$cov_soil <- str_sub(bte5_noP$STRATE_SIFORT, -3, -2)
+bte1_noP$cov_soil <- str_sub(bte1_noP$STRATE_SIFORT, -2, -1)
+bte2_noP$cov_soil <- str_sub(bte2_noP$STRATE_SIFORT, -2, -1)
+bte3_noP$cov_soil <- str_sub(bte3_noP$STRATE_SIFORT, -2, -1)
+bte4_noP$cov_soil <- str_sub(bte4_noP$STRATE_SIFORT, -2, -1)
+bte5_noP$cov_soil <- str_sub(bte5_noP$STRATE_SIFORT, -2, -1)
 
 #Perturbations
 

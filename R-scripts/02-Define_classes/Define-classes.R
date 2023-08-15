@@ -33,3 +33,34 @@ bte_filt[bte_filt$sp_class == 10,]$GR_ESS
 
 
 write.csv(bte_filt , here("Data", "BTE", "bte_cov_class.csv"))
+
+
+### Inspect classes ###
+
+plot.sifort.classes <- function(data, inv) {
+  data.inv <- data |>
+    filter(NO_PRG == inv) |>
+    mutate(sp_class=factor(sp_class))
+  
+  my_colours <- c("black", "darkblue", "yellow", "red", "orange", "green", "darkgreen", "gray", "cyan")
+  ggplot(data.inv) +
+    geom_point(aes(x=LONGI, y=LATIT, col=sp_class), size=0.1) +
+    scale_color_manual(values = my_colours) +
+    theme_bw()
+}
+
+pdf("/Users/lukas/Desktop/classes1.pdf")
+plot.sifort.classes(data, 1)
+dev.off()
+pdf("/Users/lukas/Desktop/classes2.pdf")
+plot.sifort.classes(data, 2)
+dev.off()
+pdf("/Users/lukas/Desktop/classes3.pdf")
+plot.sifort.classes(data, 3)
+dev.off()
+pdf("/Users/lukas/Desktop/classes4.pdf")
+plot.sifort.classes(data, 4)
+dev.off()
+pdf("/Users/lukas/Desktop/classes5.pdf")
+plot.sifort.classes(data, 5)
+dev.off()

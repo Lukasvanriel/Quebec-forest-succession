@@ -242,8 +242,21 @@ ggplot(df) +
   xlim(c(70,98)) +
   theme_minimal()
 
+## Pmatrix for each
+round(pmatrix.msm(msm.sc, t=10), 4)
+round(pmatrix.msm(msm.sub10, t=10), 4)
+round(pmatrix.msm(msm.sub20, t=10), 4)
+round(pmatrix.msm(msm.sub05, t=10), 4)
+round(pmatrix.msm(msm.sub01, t=10), 4)
+
+
 ##Now try subset with covariates
 msm.sub05.cov <- msm( sp_class ~ time, subject=TESSELLE, data = data_subs05, 
                   qmatrix = Q.init, control = list(fnscale = 5000000),
                   covariates = list("4-6" = ~ cov_soil)) #
 
+##
+
+table(data_msm$cov_soil)
+
+head(data_msm[data_msm$cov_soil=="  ",])
