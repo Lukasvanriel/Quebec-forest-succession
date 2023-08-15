@@ -99,7 +99,7 @@ msm.sc <- msm( sp_class ~ time, subject=TESSELLE, data = data_msm,
 #Filter out weird soil values
 #TODO: fix soil covariates
 data_msm_filt <- data_msm |>
-  filter(! cov_soil %in% c("  ", "B9", "F8", "IS"))
+  filter(! cov_soil %in% c(" ", "S"))
 
 
 msm.sc <- msm( sp_class ~ time, subject=TESSELLE, data = data_msm_filt, 
