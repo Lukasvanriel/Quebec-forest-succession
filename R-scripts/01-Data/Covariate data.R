@@ -1,6 +1,7 @@
 ###TODO: insert description
 
 ### Load packages ###
+library(tidyverse)
 library(here)
 library(data.table)
 
@@ -30,7 +31,7 @@ sg.tot <- sg |>
   mutate(TESSELLE=as.numeric(TESSELLE)) |>
   rename(cov_Tmean=an_meanT)
 
-clim.tot <- merge(cmi.tot, sg.tot)
+clim.tot <- left_join(cmi.tot, sg.tot)
 
 ### Filter out the weird years ###
 table(bte1_noP$AN_PRO_SOU)
@@ -39,12 +40,14 @@ table(bte3_noP$AN_PRO_SOU)
 table(bte4_noP$AN_PRO_SOU)
 table(bte5_noP$AN_PRO_SOU)
 
-bte4_noP <- bte4_noP |>
-  filter(AN_PRO_SOU > 1997)
+bte4_noP$AN_PRO_SOU[! bte4_noP$AN_PRO_SOU > 1997]
 
 bte1_noP <- bte1_noP[! is.na(bte1_noP$AN_PRO_SOU),]
 bte2_noP <- bte2_noP[! is.na(bte2_noP$AN_PRO_SOU),]
 bte3_noP <- bte3_noP[! is.na(bte3_noP$AN_PRO_SOU),]
+bte4_noP <- bte4_noP[! is.na(bte4_noP$AN_PRO_SOU),]
+bte4_noP <- bte4_noP |>
+  filter(AN_PRO_SOU > 1997)
 
 ### Extract climatic values for each measurement ###
 ### TODO: Collect 10 year averages ###
@@ -149,64 +152,98 @@ bte5_noP_dt <- clim5.dt[bte5_noP_dt, on = c("TESSELLE", "year")]
 # 
 
 ##Soil
+extract_soil_cov <- function(df) {
+  df$number_only <- as.integer(gsub("[^0-9]", "", df$cov_soil))
+}
 
-bte1_noP_dt$cov_soil <- str_sub(bte1_noP$STRATE_SIFORT, -2, -1)
-bte2_noP_dt$cov_soil <- str_sub(bte2_noP$STRATE_SIFORT, -2, -1)
-bte3_noP_dt$cov_soil <- str_sub(bte3_noP$STRATE_SIFORT, -2, -1)
-bte4_noP_dt$cov_soil <- str_sub(bte4_noP$STRATE_SIFORT, -2, -1)
-bte5_noP_dt$cov_soil <- str_sub(bte5_noP$STRATE_SIFORT, -2, -1)
+bte1_noP_dt$cov_soil <- extract_soil_cov(bte1_noP_dt)
+bte2_noP_dt$cov_soil <- extract_soil_cov(bte2_noP_dt)
+bte3_noP_dt$cov_soil <- extract_soil_cov(bte3_noP_dt)
+bte4_noP_dt$cov_soil <- extract_soil_cov(bte4_noP_dt)
+bte5_noP_dt$cov_soil <- extract_soil_cov(bte5_noP_dt)
+
+sum(is.na(bte1_noP_dt$cov_soil))
 
 ##Perturbations
 
+time_since <- function(pert, meas) {
+  if(is.na(pert)) {
+    return(-1)
+    } else {return(meas - pert)}
+}
+
 # Function that returns a class and severity depending on the input perturbation string 
-determine_perturb_class <- function(pert_string) {
+determine_perturb_class <- function(pert_string, pert_time, meas_time) {
   if (is.na(pert_string)) {
     pert_class <- 0
     pert_sev <- 0
+    time_since_pert <- 200
   } else if(pert_string %in% c("BR", "BRD", "BRU")) {
       pert_class <- 1
       pert_sev <- 2 # A "1" can be added later if we want to look dat partial perturbations
+      time_since_pert <- time_since(pert_time, meas_time)
     } else if (pert_string %in% c("CBA","CBT","CEF","CPT","CRB","CRS","CS","CT","ETR","RPS")) {
       pert_class <- 2
       pert_sev <- 2 # A "1" can be added later if we want to look dat partial perturbations
+      time_since_pert <- time_since(pert_time, meas_time)
+    } else if (pert_string %in% c("ES")) {
+      pert_class <- 3
+      pert_sev <- 2 # A "1" can be added later if we want to look dat partial perturbations
+      time_since_pert <- time_since(pert_time, meas_time)
     } else {
       pert_class <- 0
       pert_sev <- 0
+      time_since_pert <- 200
     }
-  c(pert_class, pert_sev)
+  c(pert_class, pert_sev, time_since_pert)
 }
+time_since(NA, 2000)
 
-perturbation.matrix1 <- t(sapply(bte1_noP$ORIGINE, determine_perturb_class))
-perturbation.matrix2 <- t(sapply(bte2_noP$ORIGINE, determine_perturb_class))
-perturbation.matrix3 <- t(sapply(bte3_noP$ORIGINE, determine_perturb_class))
-perturbation.matrix4 <- t(sapply(bte4_noP$ORIGINE, determine_perturb_class))
-perturbation.matrix5 <- t(sapply(bte5_noP$ORIGINE, determine_perturb_class))
+perturbation.matrix1 <- t(mapply(determine_perturb_class, bte1_noP_dt$ORIGINE, 
+                                 bte1_noP_dt$AN_PERTURB, bte1_noP_dt$year))
+perturbation.matrix2 <- t(mapply(determine_perturb_class, bte2_noP_dt$ORIGINE, 
+                                 bte2_noP_dt$AN_PERTURB, bte2_noP_dt$year))
+perturbation.matrix3 <- t(mapply(determine_perturb_class, bte3_noP_dt$ORIGINE, 
+                                 bte3_noP_dt$AN_PERTURB, bte3_noP_dt$year))
+perturbation.matrix4 <- t(mapply(determine_perturb_class, bte4_noP_dt$ORIGINE, 
+                                 bte4_noP_dt$AN_PERTURB, bte4_noP_dt$year))
+perturbation.matrix5 <- t(mapply(determine_perturb_class, bte5_noP_dt$ORIGINE, 
+                                 bte5_noP_dt$AN_PERTURB, bte5_noP_dt$year))
 
 # Add to dataset
-bte1_noP$cov_pert_class <- factor(perturbation.matrix1[,1])
-bte2_noP$cov_pert_class <- factor(perturbation.matrix2[,1])
-bte3_noP$cov_pert_class <- factor(perturbation.matrix3[,1])
-bte4_noP$cov_pert_class <- factor(perturbation.matrix4[,1])
-bte5_noP$cov_pert_class <- factor(perturbation.matrix5[,1])
+bte1_noP_dt$cov_pert_class <- factor(perturbation.matrix1[,1])
+bte2_noP_dt$cov_pert_class <- factor(perturbation.matrix2[,1])
+bte3_noP_dt$cov_pert_class <- factor(perturbation.matrix3[,1])
+bte4_noP_dt$cov_pert_class <- factor(perturbation.matrix4[,1])
+bte5_noP_dt$cov_pert_class <- factor(perturbation.matrix5[,1])
 
-bte1_noP$cov_pert_sev <- factor(perturbation.matrix1[,2])
-bte2_noP$cov_pert_sev <- factor(perturbation.matrix2[,2])
-bte3_noP$cov_pert_sev <- factor(perturbation.matrix3[,2])
-bte4_noP$cov_pert_sev <- factor(perturbation.matrix4[,2])
-bte5_noP$cov_pert_sev <- factor(perturbation.matrix5[,2])
+bte1_noP_dt$cov_pert_sev <- factor(perturbation.matrix1[,2])
+bte2_noP_dt$cov_pert_sev <- factor(perturbation.matrix2[,2])
+bte3_noP_dt$cov_pert_sev <- factor(perturbation.matrix3[,2])
+bte4_noP_dt$cov_pert_sev <- factor(perturbation.matrix4[,2])
+bte5_noP_dt$cov_pert_sev <- factor(perturbation.matrix5[,2])
+
+bte1_noP_dt$cov_time_pert <- perturbation.matrix1[,3]
+bte2_noP_dt$cov_time_pert <- perturbation.matrix2[,3]
+bte3_noP_dt$cov_time_pert <- perturbation.matrix3[,3]
+bte4_noP_dt$cov_time_pert <- perturbation.matrix4[,3]
+bte5_noP_dt$cov_time_pert <- perturbation.matrix5[,3]
+
+sum(is.na(bte4_noP_dt$AN_ORIGINE))
+sum(is.na(bte4_noP_dt$ORIGINE))
 
 ### Also update the combined dataset ###
-bte_all <- rbind(bte1_noP, bte2_noP, bte3_noP, bte4_noP, bte5_noP)
+bte_all <- rbind(bte1_noP_dt, bte2_noP_dt, bte3_noP_dt, bte4_noP_dt, bte5_noP_dt)
 
 ###There is a significant fraction of TESSELLE that are lacking Species information
 #TODO: Look into which to drop and which to keep
 bte <- bte_all |> filter(! is.na(GR_ESS))
 
 #### Write out resulting datasets ####
-write.csv(bte1_noP, here("Data", "BTE", "bte1_noP_cov.csv"))
-write.csv(bte2_noP, here("Data", "BTE", "bte2_noP_cov.csv"))
-write.csv(bte3_noP, here("Data", "BTE", "bte3_noP_cov.csv"))
-write.csv(bte4_noP, here("Data", "BTE", "bte4_noP_cov.csv"))
-write.csv(bte5_noP, here("Data", "BTE", "bte5_noP_cov.csv"))
+write.csv(bte1_noP_dt, here("Data", "BTE", "bte1_noP_cov.csv"))
+write.csv(bte2_noP_dt, here("Data", "BTE", "bte2_noP_cov.csv"))
+write.csv(bte3_noP_dt, here("Data", "BTE", "bte3_noP_cov.csv"))
+write.csv(bte4_noP_dt, here("Data", "BTE", "bte4_noP_cov.csv"))
+write.csv(bte5_noP_dt, here("Data", "BTE", "bte5_noP_cov.csv"))
 
 write.csv(bte, here("Data", "BTE", "bte_all_cov.csv"))
