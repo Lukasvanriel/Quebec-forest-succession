@@ -7,32 +7,49 @@
 
 ### PACKAGES ####
 
-require(raster)
-require(sf)
-require(zoo)
-require(reshape2)
+library(raster)
+library(sf)
+library(zoo)
+library(reshape2)
 library(tidyr)
-require(dplyr)
+library(dplyr)
 library(here)
 library(data.table)
 library(tidytable)
 
 
 ### DATA ####
-
-
 data_raw4 <- sf::st_read(here("Data", "Raw", "TES_PRG_4_DV.gdb.zip"))
 
+bte1 <- filter_bte(data_raw4, strict=TRUE)
+bte2 <- filter_bte(data_raw4, strict=TRUE)
+bte3 <- filter_bte(data_raw4, strict=TRUE)
 bte4 <- filter_bte(data_raw4, strict=TRUE)
+bte5 <- filter_bte(data_raw4, strict=TRUE)
 
+bte1[bte1$LONGI > 0, c("LATIT", "LONGI")] <-  bte1[bte1$LONGI > 0, c("LONGI", "LATIT")]
+bte2[bte2$LONGI > 0, c("LATIT", "LONGI")] <-  bte2[bte2$LONGI > 0, c("LONGI", "LATIT")]  
+bte3[bte3$LONGI > 0, c("LATIT", "LONGI")] <-  bte3[bte3$LONGI > 0, c("LONGI", "LATIT")]  
 bte4[bte4$LONGI > 0, c("LATIT", "LONGI")] <-  bte4[bte4$LONGI > 0, c("LONGI", "LATIT")]  
+bte5[bte5$LONGI > 0, c("LATIT", "LONGI")] <-  bte5[bte5$LONGI > 0, c("LONGI", "LATIT")]  
 
 #Did not filter on plantations yet!
 rm(data_raw4, data4, bte4_noP, docu, docu_filter)
 
+bte1 <- bte1 %>% 
+  st_transform("+proj=longlat +datum=WGS84 +no_defs")
+bte2 <- bte2 %>% 
+  st_transform("+proj=longlat +datum=WGS84 +no_defs")
+bte3 <- bte3 %>% 
+  st_transform("+proj=longlat +datum=WGS84 +no_defs")
 bte4 <- bte4 %>% 
   st_transform("+proj=longlat +datum=WGS84 +no_defs")
+bte5 <- bte5 %>% 
+  st_transform("+proj=longlat +datum=WGS84 +no_defs")
 
+new5 <- bte5 |>
+  filter(! TESSELLE %in% bte1$TESSELLE)
+  
 
 ##Functions
 
@@ -199,6 +216,8 @@ saveRDS(sg.test, here("Data", "Raw", "Bioclim", "sg_complete.rds"))
 
 
 
+
+
 ### Are all TESSELLE covered this way? No!
 
 bte1_noP <- read.csv(here("Data", "BTE", "bte1_noP.csv"))[,-1]
@@ -209,10 +228,10 @@ bte5_noP <- read.csv(here("Data", "BTE", "bte5_noP.csv"))[,-1]
 
 # Are all TESSELLE from surveys in survey 4 (used to dowload the bioclim data)
 
-extra1 <- bte1_noP$TESSELLE[! bte1_noP$TESSELLE %in% bte4_noP$TESSELLE]
-extra2 <- bte2_noP$TESSELLE[! bte2_noP$TESSELLE %in% bte4_noP$TESSELLE]
-extra3 <- bte3_noP$TESSELLE[! bte3_noP$TESSELLE %in% bte4_noP$TESSELLE]
-extra5 <- bte5_noP$TESSELLE[! bte5_noP$TESSELLE %in% bte4_noP$TESSELLE]
+extra1 <- bte1_noP$TESSELLE[! bte1_noP$TESSELLE %in% bte4$TESSELLE]
+extra2 <- bte2_noP$TESSELLE[! bte2_noP$TESSELLE %in% bte4$TESSELLE]
+extra3 <- bte3_noP$TESSELLE[! bte3_noP$TESSELLE %in% bte4$TESSELLE]
+extra5 <- bte5_noP$TESSELLE[! bte5_noP$TESSELLE %in% bte4$TESSELLE]
 
 ## Combine: 
 

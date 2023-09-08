@@ -2,6 +2,7 @@
 
 ### Load packages ###
 library(here)
+library(data.table)
 
 #### Load data ####
 bte1_noP <- read.csv(here("Data", "BTE", "bte1_noP.csv"))[,-1]
@@ -10,47 +11,152 @@ bte3_noP <- read.csv(here("Data", "BTE", "bte3_noP.csv"))[,-1]
 bte4_noP <- read.csv(here("Data", "BTE", "bte4_noP.csv"))[,-1]
 bte5_noP <- read.csv(here("Data", "BTE", "bte5_noP.csv"))[,-1]
 
-#Climate
+### Create covariate columns ###
+##Climate
 
 #TODO: fix covariates here
 sg <- readRDS(here("Data", "Raw", "Bioclim", "sg_complete.rds"))
 cmi <- readRDS(here("Data", "Raw", "Bioclim", "cmi_complete.rds"))
 
 cmi.tot <- cmi |>
-  select(cmi_sum, year, TESSELLE)
+  select(cmi_sum, year, TESSELLE) |>
+  mutate(year=as.numeric(year)) |>
+  mutate(TESSELLE=as.numeric(TESSELLE)) |>
+  rename(cov_CMI=cmi_sum)
 
-test <- cmi.tot |>
-  filter(TESSELLE == bte4_noP$TESSELLE[1], as.numeric(year) < bte4_noP$AN_PRO_SOU[1], as.numeric(year) >= bte4_noP$AN_PRO_SOU[1] - 10) |>
-  summarise(av.cmi=mean(cmi_sum))
+sg.tot <- sg |>
+  select(an_meanT, year, TESSELLE) |>
+  mutate(year=as.numeric(year)) |>
+  mutate(TESSELLE=as.numeric(TESSELLE)) |>
+  rename(cov_Tmean=an_meanT)
 
-# rolling_average <- cmi.tot %>%
-#   group_by(TESSELLE) %>%
-#   mutate(rolling_avg = rollapplyr(cmi_sum, width = 11, FUN = function(x) mean(tail(x, 10)), fill = NA))
+clim.tot <- merge(cmi.tot, sg.tot)
 
+### Filter out the weird years ###
+table(bte1_noP$AN_PRO_SOU)
+table(bte2_noP$AN_PRO_SOU)
+table(bte3_noP$AN_PRO_SOU)
+table(bte4_noP$AN_PRO_SOU)
+table(bte5_noP$AN_PRO_SOU)
 
-#Use random values for now
-library(random) #Remove
-bte1_noP$cov_Tmean <- sample.int(20, nrow(bte1_noP), replace = TRUE)
-bte2_noP$cov_Tmean <- sample.int(20, nrow(bte2_noP), replace = TRUE)
-bte3_noP$cov_Tmean <- sample.int(20, nrow(bte3_noP), replace = TRUE)
-bte4_noP$cov_Tmean <- sample.int(20, nrow(bte4_noP), replace = TRUE)
-bte5_noP$cov_Tmean <- sample.int(20, nrow(bte5_noP), replace = TRUE)
+bte4_noP <- bte4_noP |>
+  filter(AN_PRO_SOU > 1997)
 
-bte1_noP$cov_CMI <- sample.int(20, nrow(bte1_noP), replace = TRUE)
-bte2_noP$cov_CMI <- sample.int(20, nrow(bte2_noP), replace = TRUE)
-bte3_noP$cov_CMI <- sample.int(20, nrow(bte3_noP), replace = TRUE)
-bte4_noP$cov_CMI <- sample.int(20, nrow(bte4_noP), replace = TRUE)
-bte5_noP$cov_CMI <- sample.int(20, nrow(bte5_noP), replace = TRUE)
+bte1_noP <- bte1_noP[! is.na(bte1_noP$AN_PRO_SOU),]
+bte2_noP <- bte2_noP[! is.na(bte2_noP$AN_PRO_SOU),]
+bte3_noP <- bte3_noP[! is.na(bte3_noP$AN_PRO_SOU),]
 
-#Soil
+### Extract climatic values for each measurement ###
+### TODO: Collect 10 year averages ###
 
-bte1_noP$cov_soil <- str_sub(bte1_noP$STRATE_SIFORT, -2, -1)
-bte2_noP$cov_soil <- str_sub(bte2_noP$STRATE_SIFORT, -2, -1)
-bte3_noP$cov_soil <- str_sub(bte3_noP$STRATE_SIFORT, -2, -1)
-bte4_noP$cov_soil <- str_sub(bte4_noP$STRATE_SIFORT, -2, -1)
-bte5_noP$cov_soil <- str_sub(bte5_noP$STRATE_SIFORT, -2, -1)
+# Subset for faster extractions
+clim.tot1 <- clim.tot |>
+  filter(year >= (min(bte1_noP$AN_PRO_SOU)), year <= max(bte1_noP$AN_PRO_SOU))
+clim.tot2 <- clim.tot |>
+  filter(year >= (min(bte2_noP$AN_PRO_SOU)), year <= max(bte2_noP$AN_PRO_SOU))
+clim.tot3 <- clim.tot |>
+  filter(year >= (min(bte3_noP$AN_PRO_SOU)), year <= max(bte3_noP$AN_PRO_SOU))
+clim.tot4 <- clim.tot |>
+  filter(year >= (min(bte4_noP$AN_PRO_SOU)), year <= max(bte4_noP$AN_PRO_SOU))
+clim.tot5 <- clim.tot |>
+  filter(year >= (min(bte5_noP$AN_PRO_SOU)), year <= max(bte5_noP$AN_PRO_SOU))
 
-#Perturbations
+# Convert to data tables to speed up
+clim1.dt <- as.data.table(clim.tot1)
+clim2.dt <- as.data.table(clim.tot2)
+clim3.dt <- as.data.table(clim.tot3)
+clim4.dt <- as.data.table(clim.tot4)
+clim5.dt <- as.data.table(clim.tot5)
+
+setkey(clim1.dt, TESSELLE, year)
+setkey(clim2.dt, TESSELLE, year)
+setkey(clim3.dt, TESSELLE, year)
+setkey(clim4.dt, TESSELLE, year)
+setkey(clim5.dt, TESSELLE, year)
+
+bte1_noP_dt <- as.data.table(bte1_noP)
+bte1_noP_dt <- rename(bte1_noP_dt, year=AN_PRO_SOU)
+bte2_noP_dt <- as.data.table(bte2_noP)
+bte2_noP_dt <- rename(bte2_noP_dt, year=AN_PRO_SOU)
+bte3_noP_dt <- as.data.table(bte3_noP)
+bte3_noP_dt <- rename(bte3_noP_dt, year=AN_PRO_SOU)
+bte4_noP_dt <- as.data.table(bte4_noP)
+bte4_noP_dt <- rename(bte4_noP_dt, year=AN_PRO_SOU)
+bte5_noP_dt <- as.data.table(bte5_noP)
+bte5_noP_dt <- rename(bte5_noP_dt, year=AN_PRO_SOU)
+
+setkey(bte1_noP_dt, TESSELLE, year)
+setkey(bte2_noP_dt, TESSELLE, year)
+setkey(bte3_noP_dt, TESSELLE, year)
+setkey(bte4_noP_dt, TESSELLE, year)
+setkey(bte5_noP_dt, TESSELLE, year)
+
+# Join
+
+bte1_noP_dt <- clim1.dt[bte1_noP_dt, on = c("TESSELLE", "year")]
+bte2_noP_dt <- clim2.dt[bte2_noP_dt, on = c("TESSELLE", "year")]
+bte3_noP_dt <- clim3.dt[bte3_noP_dt, on = c("TESSELLE", "year")]
+bte4_noP_dt <- clim4.dt[bte4_noP_dt, on = c("TESSELLE", "year")]
+bte5_noP_dt <- clim5.dt[bte5_noP_dt, on = c("TESSELLE", "year")]
+
+# library(microbenchmark)
+# microbenchmark(result.filter <- apply(bte4_noP[1:100,], 1, extract_cmi_filter),
+#                result.sub <-  apply(bte4_noP[1:100,], 1, extract_cmi_subset), 
+#                result.table <- apply(bte4_noP[1:100,], 1, extract_cmi_dt),
+#                times=10)
+# 
+# start <- Sys.time()
+# t <- apply(bte4_noP[1:100,], 1, extract_cmi_dt)
+# print( Sys.time() - start )
+####
+# 
+# # Subset for faster extractions
+# cmi.tot1 <- cmi.tot |>
+#   filter(year >= (min(bte1_noP$AN_PRO_SOU)-10), year < max(bte1_noP$AN_PRO_SOU))
+# cmi.tot2 <- cmi.tot |>
+#   filter(year >= (min(bte2_noP$AN_PRO_SOU)-10), year < max(bte2_noP$AN_PRO_SOU))
+# cmi.tot3 <- cmi.tot |>
+#   filter(year >= (min(bte3_noP$AN_PRO_SOU)-10), year < max(bte3_noP$AN_PRO_SOU))
+# cmi.tot4 <- cmi.tot |>
+#   filter(year >= (min(bte4_noP$AN_PRO_SOU)-10), year < max(bte4_noP$AN_PRO_SOU))
+# cmi.tot5 <- cmi.tot |>
+#   filter(year >= (min(bte5_noP$AN_PRO_SOU)-10), year < max(bte5_noP$AN_PRO_SOU))
+# 
+# 
+# 
+# test <- cmi.tot4 |>
+#   filter(TESSELLE == bte4_noP$TESSELLE[1], as.numeric(year) < bte4_noP$AN_PRO_SOU[1], as.numeric(year) >= bte4_noP$AN_PRO_SOU[1] - 10) |>
+#   summarise(av.cmi=mean(cmi_sum)) |>
+#   pull(av.cmi)
+# 
+# cmi_vector4 <- rep(0, nrow(bte1_noP))
+# for (i in 1:nrow(bte1_noP)) {
+#   print(i)
+#   cmi_vector4[i] <- mean(cmi.tot4$cmi_sum[as.logical((cmi.tot4$TESSELLE == bte4_noP$TESSELLE[i]) * (cmi.tot4$year >= (bte4_noP$AN_PRO_SOU[1]-10)) * (cmi.tot4$year < bte4_noP$AN_PRO_SOU[i]))])
+# }
+# for (i in 1:nrow(bte1_noP)) {
+#   print(i)
+#   cmi_vector4[i] <- cmi.tot4 |>
+#     filter(TESSELLE == bte4_noP$TESSELLE[i], as.numeric(year) < bte4_noP$AN_PRO_SOU[i], as.numeric(year) >= bte4_noP$AN_PRO_SOU[1] - 10) |>
+#     summarise(av.cmi=mean(cmi_sum)) |>
+#     pull(av.cmi)
+# }
+# 
+# cmi_vector4[70]
+# mean(cmi.tot4$cmi_sum[as.logical((cmi.tot4$TESSELLE == bte4_noP$TESSELLE[1]) * (cmi.tot4$year >= (bte4_noP$AN_PRO_SOU[1]-10)) * (cmi.tot4$year < bte4_noP$AN_PRO_SOU[1]))])
+# 
+# (cmi.tot4$TESSELLE == bte4_noP$TESSELLE[1])
+# 
+
+##Soil
+
+bte1_noP_dt$cov_soil <- str_sub(bte1_noP$STRATE_SIFORT, -2, -1)
+bte2_noP_dt$cov_soil <- str_sub(bte2_noP$STRATE_SIFORT, -2, -1)
+bte3_noP_dt$cov_soil <- str_sub(bte3_noP$STRATE_SIFORT, -2, -1)
+bte4_noP_dt$cov_soil <- str_sub(bte4_noP$STRATE_SIFORT, -2, -1)
+bte5_noP_dt$cov_soil <- str_sub(bte5_noP$STRATE_SIFORT, -2, -1)
+
+##Perturbations
 
 # Function that returns a class and severity depending on the input perturbation string 
 determine_perturb_class <- function(pert_string) {

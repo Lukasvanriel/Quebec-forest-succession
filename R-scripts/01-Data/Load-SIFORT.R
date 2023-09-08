@@ -31,6 +31,21 @@ data4 <- data_raw4 |>
 data5 <- data_raw5 |> 
   filter(! is.na(data_raw5$LATIT))
 
+empty1 <- data_raw1 |> 
+  filter(is.na(data_raw1$LATIT))
+empty2 <- data_raw2 |> 
+  filter(is.na(data_raw2$LATIT))
+empty3 <- data_raw3 |> 
+  filter(is.na(data_raw3$LATIT))
+empty4 <- data_raw4 |> 
+  filter(is.na(data_raw4$LATIT))
+empty5 <- data_raw5 |> 
+  filter(is.na(data_raw5$LATIT))
+
+plot(empty1$LONGI, empty1$LATIT)
+table(empty1$TESSELLE)
+empty1$TESSELLE == empty2$TESSELLE
+
 #rm(data_raw1, data_raw2, data_raw3, data_raw4, data_raw5)
 
 #Fix problem of swapped longitude and latitude values
@@ -54,42 +69,113 @@ bte3 <- filter_bte(data3, strict=TRUE)
 bte4 <- filter_bte(data4, strict=TRUE)
 bte5 <- filter_bte(data5, strict=TRUE)
 
-rm(data1, data2, data3, data4, data5)
+#rm(data1, data2, data3, data4, data5)
 
-#### Filter out plantations ####
-# Load documentation file on species groups
+###There is a significant fraction of TESSELLE that are lacking Species information
+#TODO: Look into which to drop and which to keep
+bte1 <- bte1 |> filter(! is.na(GR_ESS))
+bte2 <- bte2 |> filter(! is.na(GR_ESS))
+bte3 <- bte3 |> filter(! is.na(GR_ESS))
+bte4 <- bte4 |> filter(! is.na(GR_ESS))
+bte5 <- bte5 |> filter(! is.na(GR_ESS))
 
-docu <- read.csv(here("Data", "Documentation", "Groupement-essences.csv"))[,-1] |>
+# 
+# bte11 <- bte1 |> filter(is.na(GR_ESS))
+# bte22 <- bte2 |> filter(is.na(GR_ESS))
+# bte33 <- bte3 |> filter(is.na(GR_ESS))
+# bte44 <- bte4 |> filter(is.na(GR_ESS))
+# bte55 <- bte5 |> filter(is.na(GR_ESS))
+# 
+# plot(bte11$LONGI, bte11$LATIT)
+# bte[bte$TESSELLE == bte11$TESSELLE[1289],]
+# bte11[bte11$TESSELLE == bte11$TESSELLE[1289],]
+
+### Check out documentation file on species groups ### 
+
+docu <- read.csv(here("Data", "Documentation", "Groupement-essences.csv")) |>
   rename(GR_ESS = Code)
 
 # There are many codes with double or even triple descriptions
 docu_filter <- docu[!duplicated(docu[,"GR_ESS"]),]
 
+
 #TODO: Find better way to filter out multiple occurrences
-#Try to look a bit more in detail:
-# docu_filt <- setNames(data.frame(matrix(ncol = 2, nrow = 0)), colnames(docu))
-# for (ess in names(table(docu$GR_ESS))) {
-#   docu_subset <- docu[docu$GR_ESS==ess,]
-#   if(nrow(docu_subset) == 1) {
-#     docu_filt <- rbind(docu_filt, docu_subset)
-#   } else if(nrow(docu_subset) == 2) {
-#     if(docu_subset[1,2] == docu_subset[2,2]) {
-#       docu_filt <- rbind(docu_filt, docu_subset[1,])
-#     } else(docu_filt <- rbind(docu_filt, docu_subset))
-#   } else if(nrow(docu_subset) == 3) {
-#     
-#   }
-# }
+codes_present <- names(table(c(bte1$GR_ESS, bte2$GR_ESS, bte3$GR_ESS, bte4$GR_ESS, bte5$GR_ESS)))
+docu_mult <- docu |>
+  filter(GR_ESS %in% codes_present) |>
+  count(GR_ESS) |>
+  filter(n > 1)
+
+docu_mult_diff <- as.data.frame(matrix(nrow=0, ncol=2))
+for(i in 1:length(docu_mult$GR_ESS)) {
+  descr <- docu$Description[docu$GR_ESS == docu_mult$GR_ESS[i]]
+  if(length(descr) == 2) {
+    if(substring(descr[2], 1, 11) == "(BFEC 3-4) "){descr[2] <- substring(descr[2], 12, nchar(descr[2]))}
+    if(! substring(descr[1], 1, 11) == "Plantation " && substring(descr[2], 1, 11) == "Plantation "){
+      if(descr[1] != descr[2]) {docu_mult_diff <- rbind(docu_mult_diff, docu[docu$GR_ESS == docu_mult$GR_ESS[i],])}
+    }
+  } else {docu_mult_diff <- rbind(docu_mult_diff, docu[docu$GR_ESS == docu_mult$GR_ESS[i],])}
+}
+
+#Go over all possibly problematic codes
+for(i in 1:length(table(docu_mult_diff$GR_ESS))) {
+  print(names(table(docu_mult_diff$GR_ESS))[i])
+  print(docu$Description[docu$GR_ESS == names(table(docu_mult_diff$GR_ESS))[i]])
+  
+  # Wait for Enter key to be pressed before continuing
+  cat("Press Enter to continue to the next iteration...")
+  readline()
+}
+
+risk_codes <- c("EPEU", "ERR", "ES", "FIPB", "FIPG", "FIPR", "FTPB", "MEPG", 
+                "PEPB", "PEPG", "PEPR", "PGFI", "PGME", "PGPE", "PISE")
+
+for(c in risk_codes){
+  print(c)
+  print(docu[docu$GR_ESS == c,])
+  # Wait for Enter key to be pressed before continuing
+  cat("Press Enter to continue to the next iteration...")
+  readline()
+}
+# a <- filter(bte5, GR_ESS == "PISE")
+
+## Correct documentation for multiple occurences
+#The first occurence is the correct for almost all group codes
+docu_filter <- docu[!duplicated(docu[,"GR_ESS"]),]
+
+#Only for PISE group this needs to be corrected
+docu_filter[docu_filter$GR_ESS == "PISE",] <- docu[docu$GR_ESS == "PISE",][2,]
+
+#Several codes need to be dropped from 4 & 5 since then they became plantations
+bte4 <- bte4 |>
+  filter(! GR_ESS %in% risk_codes[-c(1,2,3,15)])
+bte5 <- bte5 |>
+  filter(! GR_ESS %in% risk_codes[-c(1,2,3,15)])
+
+# ES contained 2 different descriptions, so best is to rename them
+#docu[docu$GR_ESS == "ES",]
+#docu[docu$GR_ESS == "EBEB",]
+#docu[docu$GR_ESS == "ER",]
+
+bte1$GR_ESS[bte1$GR_ESS == "ES"] <- "EBEB"
+bte2$GR_ESS[bte2$GR_ESS == "ES"] <- "EBEB"
+bte3$GR_ESS[bte3$GR_ESS == "ES"] <- "EBEB"
+bte4$GR_ESS[bte4$GR_ESS == "ES"] <- "ER"
+bte5$GR_ESS[bte5$GR_ESS == "ES"] <- "ER"
+
+#### Filter out plantations ####
+table(c(bte1$ORIGINE, bte2$ORIGINE, bte3$ORIGINE, bte4$ORIGINE, bte5$ORIGINE))
 
 #Function to filter out all Tesselle that are plantations
 filt_plantations <- function(data, docu) {
   ##Based on disturbance information:
   tess_origine <- data |>
-    filter(ORIGINE %in% c("P", "PA", "PE", "PL", "PLB", "PLN", "PLR", "PRR")) #TODO: ENS, REA?
+    filter(ORIGINE %in% c("P", "PA", "PE", "PL", "PLB", "PLN", "PLR", "PRR",
+                          "ENM", "ENS", "ETR", "FR", "REA", "RPS", "VG")) #TODO: Maybe too many, eg ETR, FR?
   
   ##Based on Description of species class:
   data_doc <- plyr::join(data, docu, by="GR_ESS", type="left")
-  #Test if the word "plantation/Plantation" is written in the description
+  #Test if the word "plantation/Plantation" is written in the description #TODO: Other words to filter on?
   tess_doc <- data_doc |> 
     mutate(Plant=grepl("Plantation", Description)) |>
     mutate(plant=grepl("plantation", Description)) |>
@@ -109,6 +195,12 @@ bte3_noP <- filt_plantations(bte3, docu_filter)
 bte4_noP <- filt_plantations(bte4, docu_filter)
 bte5_noP <- filt_plantations(bte5, docu_filter)
 
+docu_filter$Description
+docu_noP <- docu_filter |> 
+  mutate(Plant=grepl("Plantation", Description)) |>
+  mutate(plant=grepl("plantation", Description)) |>
+  filter(! Plant | plant) |>
+  select(Description)
 
 ### Combine all data in one dataframe
 # Only keep columns that are present in bte5
@@ -121,12 +213,8 @@ bte3_noP <- bte3_noP %>%
 bte4_noP <- bte4_noP %>%
   select(intersect(colnames(bte4_noP) , colnames(bte5_noP)))
 
-# Merge all 5
-bte_all <- rbind(bte1_noP, bte2_noP, bte3_noP, bte4_noP, bte5_noP)
-
-###There is a significant fraction of TESSELLE that are lacking Species information
-#TODO: Look into which to drop and which to keep
-bte <- bte_all |> filter(! is.na(GR_ESS))
+# Merge all
+bte <- rbind(bte1_noP, bte2_noP, bte3_noP, bte4_noP, bte5_noP)
 
 #### Write out resulting datasets ####
 write.csv(bte1_noP, here("Data", "BTE", "bte1_noP.csv"))
