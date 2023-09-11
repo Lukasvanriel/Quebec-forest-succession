@@ -109,7 +109,7 @@ msm.sc <- msm( sp_class ~ time, subject=TESSELLE, data = data_msm_filt,
 
 
 ### Analyse output ###
-
+#TODO: extend this function so it can directly compare different runs
 #Function to plot the parameters of a msm function run
 #@param: Model has to msm list object as outputted by msm function
 plot.msm <- function(model) {
