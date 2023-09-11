@@ -14,8 +14,6 @@ bte5_noP <- read.csv(here("Data", "BTE", "bte5_noP.csv"))[,-1]
 
 ### Create covariate columns ###
 ##Climate
-
-#TODO: fix covariates here
 sg <- readRDS(here("Data", "Raw", "Bioclim", "sg_complete.rds"))
 cmi <- readRDS(here("Data", "Raw", "Bioclim", "cmi_complete.rds"))
 
@@ -165,6 +163,7 @@ bte5_noP_dt$cov_soil <- extract_soil_cov(bte5_noP_dt)
 sum(is.na(bte1_noP_dt$cov_soil))
 
 ##Perturbations
+#TODO: fix missing NA's in perturbation dates
 
 time_since <- function(pert, meas) {
   if(is.na(pert)) {

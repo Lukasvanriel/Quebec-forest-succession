@@ -15,13 +15,10 @@ data <- read.csv(here("Data", "BTE", "bte_cov_class.csv"))[,-1]
 
 ## Add time column that indicates time since first observation
 #First remove rows that lack observation times
-#TODO: Try to find way to deal with NA's in observation times
-data <- data |>
-  filter(! is.na(data$AN_PRO_SOU))
 
 data_time <- data |>
   group_by(TESSELLE) |>
-  mutate(time=AN_PRO_SOU-min(AN_PRO_SOU)) |>
+  mutate(time=year-min(year)) |>
   arrange(TESSELLE, time)
 
 ## Filter out Tesselle with only one measurement
@@ -70,7 +67,7 @@ Q.model <- as.matrix(round(mnom, 3)) #To determine which transitions are impossi
 
 ## Get initial estimate for Q
 
-Q.init  <- crudeinits.msm(sp_class ~ time, TESSELLE, data=data_msm, qmatrix=Q.model)
+Q.init <- crudeinits.msm(sp_class ~ time, TESSELLE, data=data_msm, qmatrix=Q.model)
 
 ##Run msm
 

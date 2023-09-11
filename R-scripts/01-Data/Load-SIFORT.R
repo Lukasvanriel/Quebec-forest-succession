@@ -98,7 +98,6 @@ docu <- read.csv(here("Data", "Documentation", "Groupement-essences.csv")) |>
 # There are many codes with double or even triple descriptions
 docu_filter <- docu[!duplicated(docu[,"GR_ESS"]),]
 
-
 #TODO: Find better way to filter out multiple occurrences
 codes_present <- names(table(c(bte1$GR_ESS, bte2$GR_ESS, bte3$GR_ESS, bte4$GR_ESS, bte5$GR_ESS)))
 docu_mult <- docu |>

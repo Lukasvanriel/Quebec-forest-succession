@@ -61,7 +61,7 @@ class.list[[27]] <- c("CS", 5)
 class.list[[28]] <- c("RF", 2)
 class.list[[29]] <- c("ML", 9)
 class.list[[30]] <- c("EC", 7) #?
-class.list[[31]] <- c("SP", 2)
+class.list[[31]] <- c("SP", 6)
 class.list[[32]] <- c("RE", 7)
 class.list[[33]] <- c("CE", 5)
 class.list[[34]] <- c("RP", 9)
@@ -88,10 +88,13 @@ class.list[[53]] <- c("RM", 9)
 class.list[[54]] <- c("CR", 5)
 class.list[[55]] <- c("HG", 5)
 class.list[[56]] <- c("CP", 5)
-class.list[[57]] <- c("FO", 9)
+class.list[[57]] <- c("FO", 5)
 class.list[[58]] <- c("RZ", 9)
 class.list[[59]] <- c("GG", 9)
 class.list[[60]] <- c("RG", 9)
+
+class.list[[61]] <- c("PU", 5)
+class.list[[62]] <- c("BG", 2) # "Bouleaux gris et peupliers indistincts"
 
 msm.class.normal <- as.data.frame(do.call(rbind, class.list))
 colnames(msm.class.normal) <- c("cl", "msm")
