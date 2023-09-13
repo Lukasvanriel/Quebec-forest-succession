@@ -10,6 +10,8 @@ library(conflicted)
 ### Data ###
 if(F) {
 data <- read.csv(here("Data", "BTE", "bte_cov_class.csv"))[,-1]
+sum(is.na(data$cov_time_pert))
+sum(data$cov_time_pert == -1)
 
 ### Prepare data to be compatible with msm required format ###
 
@@ -78,6 +80,11 @@ Q.init <- crudeinits.msm(sp_class ~ time, TESSELLE, data=data_msm, qmatrix=Q.mod
 msm.sc <- msm( sp_class ~ time, subject=TESSELLE, data = data_msm, 
                 qmatrix = Q.init, control = list(fnscale = 5000000))
 
+
+data_msm <- data_msm %>% mutate_at(c("cov_CMI", "cov_Tmean"), ~(scale(.) %>% as.vector))
+msm.sc <- msm( sp_class ~ time, subject=TESSELLE, data = data_msm, 
+               qmatrix = Q.init, control = list(fnscale = 5000000), covariates = ~ cov_Tmean)
+
 #msm.cg <- msm( sp_class ~ time, subject=TESSELLE, data = data_msm, 
 #                  qmatrix = Q.init, method = "CG")
 
@@ -92,12 +99,6 @@ msm.sc <- msm( sp_class ~ time, subject=TESSELLE, data = data_msm,
 
 
 ### Add covariates ###
-
-#Filter out weird soil values
-#TODO: fix soil covariates
-data_msm_filt <- data_msm |>
-  filter(! cov_soil %in% c(" ", "S"))
-
 
 msm.sc <- msm( sp_class ~ time, subject=TESSELLE, data = data_msm_filt, 
                qmatrix = Q.init, control = list(fnscale = 5000000)) #No global minimum

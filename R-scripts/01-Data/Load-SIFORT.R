@@ -7,15 +7,15 @@ library(here)
 
 #TODO: Add disclaimer about date accessed + website
 #### Read in raw data ####
-data_raw1 <- sf::st_read(here("Data", "Raw", "TES_PRG_1_DV.gdb.zip")) |> 
+data_raw1 <- sf::st_read(here("Data", "Raw", "SIFORT", "TES_PRG_1_DV.gdb.zip")) |> 
   st_drop_geometry()
-data_raw2 <- sf::st_read(here("Data", "Raw", "TES_PRG_2_DV.gdb.zip")) |> 
+data_raw2 <- sf::st_read(here("Data", "Raw", "SIFORT", "TES_PRG_2_DV.gdb.zip")) |> 
   st_drop_geometry()
-data_raw3 <- sf::st_read(here("Data", "Raw", "TES_PRG_3_DV.gdb.zip")) |> 
+data_raw3 <- sf::st_read(here("Data", "Raw", "SIFORT", "TES_PRG_3_DV.gdb.zip")) |> 
   st_drop_geometry()
-data_raw4 <- sf::st_read(here("Data", "Raw", "TES_PRG_4_DV.gdb.zip")) |> 
+data_raw4 <- sf::st_read(here("Data", "Raw", "SIFORT", "TES_PRG_4_DV.gdb.zip")) |> 
   st_drop_geometry()
-data_raw5 <- sf::st_read(here("Data", "Raw", "TES_PRG_5_V0.gdb.zip")) |> 
+data_raw5 <- sf::st_read(here("Data", "Raw", "SIFORT", "TES_PRG_5_V0.gdb.zip")) |> 
   st_drop_geometry()
 
 #### Clean data ####
@@ -47,6 +47,11 @@ table(empty1$TESSELLE)
 empty1$TESSELLE == empty2$TESSELLE
 
 #rm(data_raw1, data_raw2, data_raw3, data_raw4, data_raw5)
+write.csv(data1, here("Data", "Raw", "SIFORT", "raw_data1.csv"))
+write.csv(data2, here("Data", "Raw", "SIFORT", "raw_data2.csv"))
+write.csv(data3, here("Data", "Raw", "SIFORT", "raw_data3.csv"))
+write.csv(data4, here("Data", "Raw", "SIFORT", "raw_data4.csv"))
+write.csv(data5, here("Data", "Raw", "SIFORT", "raw_data5.csv"))
 
 #Fix problem of swapped longitude and latitude values
 data1[data1$LONGI > 0, c("LATIT", "LONGI")] <-  data1[data1$LONGI > 0, c("LONGI", "LATIT")]
@@ -80,11 +85,11 @@ bte4 <- bte4 |> filter(! is.na(GR_ESS))
 bte5 <- bte5 |> filter(! is.na(GR_ESS))
 
 # 
-# bte11 <- bte1 |> filter(is.na(GR_ESS))
-# bte22 <- bte2 |> filter(is.na(GR_ESS))
-# bte33 <- bte3 |> filter(is.na(GR_ESS))
-# bte44 <- bte4 |> filter(is.na(GR_ESS))
-# bte55 <- bte5 |> filter(is.na(GR_ESS))
+bte11 <- bte1 |> filter(is.na(GR_ESS))
+bte22 <- bte2 |> filter(is.na(GR_ESS))
+bte33 <- bte3 |> filter(is.na(GR_ESS))
+bte44 <- bte4 |> filter(is.na(GR_ESS))
+bte55 <- bte5 |> filter(is.na(GR_ESS))
 # 
 # plot(bte11$LONGI, bte11$LATIT)
 # bte[bte$TESSELLE == bte11$TESSELLE[1289],]
