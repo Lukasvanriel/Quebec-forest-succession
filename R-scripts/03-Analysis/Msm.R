@@ -1,13 +1,19 @@
-#### Runs the markov chain model using the msm package ####
+# Lukas Van Riel
+# 2023-09-13
+# Runs the markov chain model using the msm package
+rm(list = ls())
 
-### Load packages ###
+### Load packages ####
 library(tidyverse)
 library(msm)
+library(minqa)
 library(stringr)
 library(here)
 library(conflicted)
 
-### Data ###
+conflicts_prefer(dplyr::filter)
+
+### Data ####
 if(F) {
 data <- read.csv(here("Data", "BTE", "bte_cov_class.csv"))[,-1]
 sum(is.na(data$cov_time_pert))
@@ -49,9 +55,78 @@ data_mult_filt <- data_mult |>
 write.csv(data_mult_filt, here("Data", "BTE", "bte_msm_ready.csv"))
 }
 
-### Run msm ###
-
 data_msm <- read.csv(here("Data", "BTE", "bte_msm_ready.csv"))[,-1]
+
+### Functions ####
+
+## Function to more easily run msm remotely
+##Analyse msm model output 
+#TODO: extend this function so it can directly compare different runs
+#Function to plot the parameters of a msm function run
+#@param: Model has to msm list object as outputted by msm function
+plot.msm <- function(model, path=NA) {
+  # Extract output parameters from model
+  output.params <- data.frame(est=model$estimates.t,
+                              ci_l=model$ci[,1],
+                              ci_h=model$ci[,2])
+  
+  # Add correct transitions to dataframe; e.g. 21 means from 2 to 1 
+  dim <- nrow(model$qmodel$imatrix) # Extract the extent of the transition matrix
+  
+  index <- seq(1, dim, by=1)
+  transitions <- c()
+  for(i in index) {
+    for(j in index[-i]) {
+      if(model$qmodel$imatrix[i, j]) {transitions <- c(transitions, 10*i + j%%10)}
+    }
+  }
+  output.params$trans <- transitions
+  
+  if(is.na(path)) {
+    ggplot(output.params, aes(x=trans, y=est)) +
+      geom_point() +
+      geom_errorbar(aes(ymin=ci_l, ymax=ci_h)) +
+      labs(title = "Parameter Estimates with Error Bars",
+           x = "Transition",
+           y = "Estimated q") +
+      scale_x_continuous(breaks = seq(10, 100, by = 10)) +
+      theme_minimal()
+    
+  } else {
+  
+    plot <- ggplot(output.params, aes(x=trans, y=est)) +
+      geom_point() +
+      geom_errorbar(aes(ymin=ci_l, ymax=ci_h)) +
+      labs(title = "Parameter Estimates with Error Bars",
+           x = "Transition",
+           y = "Estimated q") +
+      scale_x_continuous(breaks = seq(10, 100, by = 10)) +
+      theme_minimal()
+    ggsave(filename = path, plot = plot, device = "pdf")
+    }
+}
+
+run_remote_msm <- function(data_msm, qmatrix, md = "BFGS", ctrl = 1, cov = NA, name.out.rds) {
+  if(! all(c("sp_class", "time", "TESSELLE") %in% colnames(data_msm))) {
+    return("Missing information in data.")
+  }
+  
+  msm.model <- tryCatch(msm( sp_class ~ time, subject=TESSELLE, data = data_msm,
+                             qmatrix = qmatrix, method= md, control = list(fnscale = ctrl)),
+                        error = function(e) NA)
+  
+  tryCatch(saveRDS(msm.model, here("Data-Output", "msm", name.out.rds)), error = function(e) NA)
+  
+  # Plot model parameters
+  tryCatch(plot.msm(msm.model, here("Data-Output", "msm",
+                                    paste0(str_sub(name.out.rds, end = -5), "_qvalues.pdf"))),
+           error = function(e) NA)
+
+}
+
+
+### Initialise ####
+
 
 ## Create statetables:
 msm_state <- statetable.msm(sp_class, TESSELLE, data=data_msm)
@@ -63,27 +138,44 @@ round(funrar::make_relative(msm_state), 3)
 
 source(here("R-scripts", "03-Analysis", "multinomial.R"))
 
-mnom <- multinom_model(data_msm)
+if (file.exists(here("Data-Output", "msm", "multinom.rds"))) {
+  mnom <- readRDS(here("Data-Output", "msm", "multinom.rds"))
+} else {
+  mnom <- multinom_model(data_msm)
+  saveRDS(mnom, here("Data-Output", "msm", "multinom.rds"))
+}
 
-Q.model <- as.matrix(round(mnom, 3)) #To determine which transitions are impossible (seems to be none)
+#To determine which transitions are impossible
+Q.model <- as.matrix(round(mnom, 3)) 
 
 ## Get initial estimate for Q
 
 Q.init <- crudeinits.msm(sp_class ~ time, TESSELLE, data=data_msm, qmatrix=Q.model)
 
-##Run msm
 
+### Run msm ####
+
+# run_remote_msm(data_msm = data_msm, qmatrix = Q.init, ctrl = 1, name.out.rds = "msm.reg.rds")
+run_remote_msm(data_msm = data_msm, qmatrix = Q.init, ctrl = 5000000, name.out.rds = "msm.reg.sc5M.rds")
+
+
+
+
+### For future runs ####
+
+
+##---
 #msm.reg <- msm( sp_class ~ time, subject=TESSELLE, data = data_msm, 
 #                qmatrix = Q.init) #numerical overflow in calculating likelihood
 
 #Try some other things
-msm.sc <- msm( sp_class ~ time, subject=TESSELLE, data = data_msm, 
-                qmatrix = Q.init, control = list(fnscale = 5000000))
-
-
-data_msm <- data_msm %>% mutate_at(c("cov_CMI", "cov_Tmean"), ~(scale(.) %>% as.vector))
-msm.sc <- msm( sp_class ~ time, subject=TESSELLE, data = data_msm, 
-               qmatrix = Q.init, control = list(fnscale = 5000000), covariates = ~ cov_Tmean)
+# msm.sc <- msm( sp_class ~ time, subject=TESSELLE, data = data_msm, 
+#                 qmatrix = Q.init, control = list(fnscale = 5000000))
+# 
+# 
+# data_msm <- data_msm %>% mutate_at(c("cov_CMI", "cov_Tmean"), ~(scale(.) %>% as.vector))
+# msm.sc <- msm( sp_class ~ time, subject=TESSELLE, data = data_msm, 
+#                qmatrix = Q.init, control = list(fnscale = 5000000), covariates = ~ cov_Tmean)
 
 #msm.cg <- msm( sp_class ~ time, subject=TESSELLE, data = data_msm, 
 #                  qmatrix = Q.init, method = "CG")
@@ -98,10 +190,15 @@ msm.sc <- msm( sp_class ~ time, subject=TESSELLE, data = data_msm,
 #                  qmatrix = Q.init, control = list(fnscale = 5000000), method = "Nelder-Mead")
 
 
+
+
+
+
+
 ### Add covariates ###
 
-msm.sc <- msm( sp_class ~ time, subject=TESSELLE, data = data_msm_filt, 
-               qmatrix = Q.init, control = list(fnscale = 5000000)) #No global minimum
+# msm.sc <- msm( sp_class ~ time, subject=TESSELLE, data = data_msm_filt, 
+#                qmatrix = Q.init, control = list(fnscale = 5000000)) #No global minimum
 
 # msm.sc.cov <- msm( sp_class ~ time, subject=TESSELLE, data = data_msm_filt, 
 #                qmatrix = Q.init, control = list(fnscale = 5000000),
@@ -109,40 +206,7 @@ msm.sc <- msm( sp_class ~ time, subject=TESSELLE, data = data_msm_filt,
 
 
 
-### Analyse output ###
-#TODO: extend this function so it can directly compare different runs
-#Function to plot the parameters of a msm function run
-#@param: Model has to msm list object as outputted by msm function
-plot.msm <- function(model) {
-  # Extract output parameters from model
-  output.params <- data.frame(est=model$estimates.t,
-                              ci_l=model$ci[,1],
-                              ci_h=model$ci[,2])
-  
-  # Add correct transitions to dataframe; e.g. 21 means from 2 to 1 
-  dim <- (1 + sqrt(1 + 4 * nrow(output.params))) / 2 #Determine the extent of the transition matrix
-  
-  index <- seq(1, dim, by=1)
-  transitions <- c()
-  for(i in index) {
-    for(j in index[-i]) {
-      transitions <- c(transitions, 10*i + j%%10)
-    }
-  }
-  output.params$trans <- transitions
-  
-  ggplot(output.params, aes(x=trans, y=est)) +
-    geom_point() +
-    geom_errorbar(aes(ymin=ci_l, ymax=ci_h)) +
-    labs(title = "Parameter Estimates with Error Bars",
-         x = "Transition",
-         y = "Estimated q") +
-    theme_minimal()
-}
-
-plot.msm(msm.sc)
-
-
+if(F) {
 
 ### Try with subset of data ###
 
@@ -258,3 +322,4 @@ msm.sub05.cov <- msm( sp_class ~ time, subject=TESSELLE, data = data_subs05,
 table(data_msm$cov_soil)
 
 head(data_msm[data_msm$cov_soil=="  ",])
+}
