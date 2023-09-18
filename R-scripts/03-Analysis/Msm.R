@@ -111,9 +111,16 @@ run_remote_msm <- function(data_msm, qmatrix, md = "BFGS", ctrl = 1, cov = NA, n
     return("Missing information in data.")
   }
   
-  msm.model <- tryCatch(msm( sp_class ~ time, subject=TESSELLE, data = data_msm,
-                             qmatrix = qmatrix, method= md, control = list(fnscale = ctrl)),
-                        error = function(e) NA)
+  if(md %in% c("BFGS", "CG", "Nelder-Mead", "SANN")) {
+    msm.model <- tryCatch(msm( sp_class ~ time, subject=TESSELLE, data = data_msm,
+                               qmatrix = qmatrix, method= md, control = list(fnscale = ctrl)),
+                          error = function(e) NA)
+    
+  } else if (md %in% c("nlm", "bobyqa", "Fisher")){
+    msm.model <- tryCatch(msm( sp_class ~ time, subject=TESSELLE, data = data_msm,
+                               qmatrix = qmatrix, opt.method= md, control = list(fnscale = ctrl)),
+                          error = function(e) NA)
+  }
   
   tryCatch(saveRDS(msm.model, here("Data-Output", "msm", name.out.rds)), error = function(e) NA)
   
@@ -158,7 +165,18 @@ Q.init <- crudeinits.msm(sp_class ~ time, TESSELLE, data=data_msm, qmatrix=Q.mod
 # run_remote_msm(data_msm = data_msm, qmatrix = Q.init, ctrl = 1, name.out.rds = "msm.reg.rds")
 run_remote_msm(data_msm = data_msm, qmatrix = Q.init, ctrl = 5000000, name.out.rds = "msm.reg.sc5M.rds")
 
+## Lets create nested loops to try out different things:
 
+scaling <- c(5000000, 1)
+methods <- c("BFGS", "CG", "Nelder-Mead", "SANN", "nlm", "bobyqa", "Fisher")
+
+
+for(S in scaling) {
+  for(M in methods) {
+    run_remote_msm(data_msm = data_msm, qmatrix = Q.init, ctrl = S, md = M,
+                   name.out.rds = paste0("msm.", M,".sc", as.character(S), ".rds"))
+  }
+}
 
 
 ### For future runs ####
