@@ -173,35 +173,49 @@ Q.init <- crudeinits.msm(sp_class ~ time, TESSELLE, data=data_msm, qmatrix=Q.mod
 
 ## Lets create nested loops to try out different things:
 
-scaling <- c(5000000, 1)
-methods <- c("BFGS", "CG", "Nelder-Mead", "SANN", "nlm", "bobyqa", "fisher")
+if(T) {
+#scaling <- c(5000000, 1)
+#methods <- c("BFGS", "CG", "Nelder-Mead", "nlm", "fisher") #Removed SANN and bobyqa
 
-
+scaling <- c(1)
+methods <- c("Nelder-Mead", "nlm", "fisher")  
+  
 for(S in scaling) {
   for(M in methods) {
     run_remote_msm(data_msm = data_msm, qmatrix = Q.init, ctrl = S, md = M,
                    name.out.rds = paste0("msm.", M,".sc", as.character(S), ".rds"))
   }
 }
-
-
-if(F) {
-###
-#TODO fix covariates in df!!
-S <- 5000000
-covariates <- c('~ cov_CMI', '~ cov_Tmean', '~ cov_soil')
-methods <- c("BFGS", "CG", "nlm", "bobyqa", "fisher")
-
-for(C in covariates) {
-  for(M in methods) {
-    run_remote_msm(data_msm = data_msm, qmatrix = Q.init, ctrl = S, md = M,
-                   cov = C,
-                   name.out.rds = paste0("msm.", M,".sc", as.character(S), 
-                                         substr(C, start = 3, stop = nchar(C)), ".rds"))
-  }
 }
 
 
+### Try nested loop for covariates
+if(F) {
+data_test <- data_msm
+data_test$cov_CMI[is.na(data_test$cov_CMI)] <- mean(data_test$cov_CMI, na.rm =T)
+data_test$cov_Tmean[is.na(data_test$cov_Tmean)] <- mean(data_test$cov_Tmean, na.rm =T)
+
+data_test <- data_test %>% 
+  mutate(cov_CMI = (cov_CMI - mean(cov_CMI)) / sd(cov_CMI)) %>% 
+  mutate(cov_Tmean = (cov_Tmean - mean(cov_Tmean)) / sd(cov_Tmean))
+
+S <- 5000000
+covariates <- c('~ cov_CMI', '~ cov_Tmean', '~ cov_soil', 
+                '~ cov_CMI + cov_Tmean', '~ cov_Tmean + cov_soil',
+                '~ cov_CMI + cov_soil', '~ cov_CMI + cov_Tmean + cov_soil')
+methods <- c("BFGS", "CG", "Nelder-Mead", "nlm", "fisher") # removed bobyqa and SANN
+
+for(M in methods) {
+  for(C in covariates) {
+    run_remote_msm(data_msm = data_test, qmatrix = Q.init, ctrl = S, md = M,
+                   cov = C,
+                   name.out.rds = paste0("msm.", M,".sc", as.character(S), "_", 
+                                         gsub('[~ cov_]','', C), ".rds"))
+  }
+}
+
+}
+if(F) {
 ### For future runs ####
 # a <- readRDS(here("Data-Output", "msm", "msm.reg.sc5M.rds"))
 data_test <- data_msm
