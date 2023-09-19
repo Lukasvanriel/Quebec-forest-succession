@@ -145,7 +145,7 @@ round(funrar::make_relative(msm_state), 3)
 
 # Multinomial analysis to determine impossible transitions
 
-source(here("R-scripts", "03-Analysis", "multinomial.R"))
+source(here("R-scripts", "03-Analysis", "Multinomial.R"))
 
 if (file.exists(here("Data-Output", "msm", "multinom.rds"))) {
   mnom <- readRDS(here("Data-Output", "msm", "multinom.rds"))
@@ -165,11 +165,11 @@ Q.init <- crudeinits.msm(sp_class ~ time, TESSELLE, data=data_msm, qmatrix=Q.mod
 ### Run msm ####
 
 # run_remote_msm(data_msm = data_msm, qmatrix = Q.init, ctrl = 1, name.out.rds = "msm.reg.rds")
-run_remote_msm(data_msm = data_msm, qmatrix = Q.init, ctrl = 5000000, name.out.rds = "msm.reg.sc5M.rds")
+# run_remote_msm(data_msm = data_msm, qmatrix = Q.init, ctrl = 5000000, name.out.rds = "msm.reg.sc5M.rds")
 
 
 
-if(F) {
+
 
 ## Lets create nested loops to try out different things:
 
@@ -184,6 +184,8 @@ for(S in scaling) {
   }
 }
 
+
+if(F) {
 ###
 #TODO fix covariates in df!!
 S <- 5000000
