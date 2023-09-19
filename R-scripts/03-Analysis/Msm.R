@@ -106,19 +106,21 @@ plot.msm <- function(model, path=NA) {
     }
 }
 
-run_remote_msm <- function(data_msm, qmatrix, md = "BFGS", ctrl = 1, cov = NA, name.out.rds) {
+run_remote_msm <- function(data_msm, qmatrix, md = "BFGS", ctrl = 1, cov = "~ 1", name.out.rds) {
   if(! all(c("sp_class", "time", "TESSELLE") %in% colnames(data_msm))) {
     return("Missing information in data.")
   }
   
   if(md %in% c("BFGS", "CG", "Nelder-Mead", "SANN")) {
     msm.model <- tryCatch(msm( sp_class ~ time, subject=TESSELLE, data = data_msm,
-                               qmatrix = qmatrix, method= md, control = list(fnscale = ctrl)),
+                               qmatrix = qmatrix, method= md, control = list(fnscale = ctrl),
+                               covariates = as.formula(cov)),
                           error = function(e) NA)
     
-  } else if (md %in% c("nlm", "bobyqa", "Fisher")){
+  } else if (md %in% c("nlm", "bobyqa", "fisher")){
     msm.model <- tryCatch(msm( sp_class ~ time, subject=TESSELLE, data = data_msm,
-                               qmatrix = qmatrix, opt.method= md, control = list(fnscale = ctrl)),
+                               qmatrix = qmatrix, opt.method= md, control = list(fnscale = ctrl),
+                               covariates = as.formula(cov)),
                           error = function(e) NA)
   }
   
@@ -165,10 +167,14 @@ Q.init <- crudeinits.msm(sp_class ~ time, TESSELLE, data=data_msm, qmatrix=Q.mod
 # run_remote_msm(data_msm = data_msm, qmatrix = Q.init, ctrl = 1, name.out.rds = "msm.reg.rds")
 run_remote_msm(data_msm = data_msm, qmatrix = Q.init, ctrl = 5000000, name.out.rds = "msm.reg.sc5M.rds")
 
+
+
+if(F) {
+
 ## Lets create nested loops to try out different things:
 
 scaling <- c(5000000, 1)
-methods <- c("BFGS", "CG", "Nelder-Mead", "SANN", "nlm", "bobyqa", "Fisher")
+methods <- c("BFGS", "CG", "Nelder-Mead", "SANN", "nlm", "bobyqa", "fisher")
 
 
 for(S in scaling) {
@@ -178,8 +184,44 @@ for(S in scaling) {
   }
 }
 
+###
+#TODO fix covariates in df!!
+S <- 5000000
+covariates <- c('~ cov_CMI', '~ cov_Tmean', '~ cov_soil')
+methods <- c("BFGS", "CG", "nlm", "bobyqa", "fisher")
+
+for(C in covariates) {
+  for(M in methods) {
+    run_remote_msm(data_msm = data_msm, qmatrix = Q.init, ctrl = S, md = M,
+                   cov = C,
+                   name.out.rds = paste0("msm.", M,".sc", as.character(S), 
+                                         substr(C, start = 3, stop = nchar(C)), ".rds"))
+  }
+}
+
 
 ### For future runs ####
+# a <- readRDS(here("Data-Output", "msm", "msm.reg.sc5M.rds"))
+data_test <- data_msm
+data_test$cov_CMI[is.na(data_test$cov_CMI)] <- mean(data_test$cov_CMI, na.rm =T)
+data_test$cov_Tmean[is.na(data_test$cov_Tmean)] <- mean(data_test$cov_Tmean, na.rm =T)
+
+data_test <- data_test %>% 
+  mutate(cov_CMI = (cov_CMI - mean(cov_CMI)) / sd(cov_CMI)) %>% 
+  mutate(cov_Tmean = (cov_Tmean - mean(cov_Tmean)) / sd(cov_Tmean))
+
+run_remote_msm(data_msm = data_test, qmatrix = Q.init, ctrl = 5000000,
+               name.out.rds = "msm.reg.sc5M.COVTEST.rds")
+
+run_remote_msm(data_msm = data_msm, qmatrix = Q.init, ctrl = 5000000, name.out.rds = "msm.reg.sc5M.rds")
+
+run_remote_msm(data_msm = data_test, qmatrix = Q.init, ctrl = 5000000, name.out.rds = "msm.reg.sc5M.rds",
+               cov="~ cov_Tmean")
+
+tst <- msm( sp_class ~ time, subject=TESSELLE, data = data_test,
+     qmatrix = Q.init, control = list(fnscale = 5000000), covariates = as.formula("~ cov_Tmean"))
+
+
 
 
 ##---
@@ -340,4 +382,5 @@ msm.sub05.cov <- msm( sp_class ~ time, subject=TESSELLE, data = data_subs05,
 table(data_msm$cov_soil)
 
 head(data_msm[data_msm$cov_soil=="  ",])
+}
 }
