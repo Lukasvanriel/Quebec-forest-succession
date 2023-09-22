@@ -15,44 +15,44 @@ conflicts_prefer(dplyr::filter)
 
 ### Data ####
 if(F) {
-data <- read.csv(here("Data", "BTE", "bte_cov_class.csv"))[,-1]
-sum(is.na(data$cov_time_pert))
-sum(data$cov_time_pert == -1)
-
-### Prepare data to be compatible with msm required format ###
-
-## Add time column that indicates time since first observation
-#First remove rows that lack observation times
-
-data_time <- data |>
-  group_by(TESSELLE) |>
-  mutate(time=year-min(year)) |>
-  arrange(TESSELLE, time)
-
-## Filter out Tesselle with only one measurement
-single_meas <- data_time |>
-  group_by(TESSELLE) |> 
-  summarise(n=n()) |>
-  filter(n==1)
-
-data_mult <- subset(data_time, ! TESSELLE %in% single_meas$TESSELLE)
-
-## Check for multiple observations at same time:
-diff.previous <- list()
-for (i in 2:nrow(data_mult)) {
-  print(i)
-  if(data_mult$time[i] == data_mult$time[i-1]) {
-    diff.previous[[length(diff.previous) + 1]] <- i
+  data <- read.csv(here("Data", "BTE", "bte_cov_class.csv"))[,-1]
+  sum(is.na(data$cov_time_pert))
+  sum(data$cov_time_pert == -1)
+  
+  ### Prepare data to be compatible with msm required format ###
+  
+  ## Add time column that indicates time since first observation
+  #First remove rows that lack observation times
+  
+  data_time <- data |>
+    group_by(TESSELLE) |>
+    mutate(time=year-min(year)) |>
+    arrange(TESSELLE, time)
+  
+  ## Filter out Tesselle with only one measurement
+  single_meas <- data_time |>
+    group_by(TESSELLE) |> 
+    summarise(n=n()) |>
+    filter(n==1)
+  
+  data_mult <- subset(data_time, ! TESSELLE %in% single_meas$TESSELLE)
+  
+  ## Check for multiple observations at same time:
+  diff.previous <- list()
+  for (i in 2:nrow(data_mult)) {
+    print(i)
+    if(data_mult$time[i] == data_mult$time[i-1]) {
+      diff.previous[[length(diff.previous) + 1]] <- i
+    }
   }
-}
-
-data_mult$unique <- ifelse(1:nrow(data_mult) %in% diff.previous , FALSE, TRUE)
-
-data_mult_filt <- data_mult |>
-  filter(unique) |>
-  select(-unique)
-
-write.csv(data_mult_filt, here("Data", "BTE", "bte_msm_ready.csv"))
+  
+  data_mult$unique <- ifelse(1:nrow(data_mult) %in% diff.previous , FALSE, TRUE)
+  
+  data_mult_filt <- data_mult |>
+    filter(unique) |>
+    select(-unique)
+  
+  write.csv(data_mult_filt, here("Data", "BTE", "bte_msm_ready.csv"))
 }
 
 data_msm <- read.csv(here("Data", "BTE", "bte_msm_ready.csv"))[,-1]
@@ -93,7 +93,7 @@ plot.msm <- function(model, path=NA) {
       theme_minimal()
     
   } else {
-  
+    
     plot <- ggplot(output.params, aes(x=trans, y=est)) +
       geom_point() +
       geom_errorbar(aes(ymin=ci_l, ymax=ci_h)) +
@@ -103,7 +103,7 @@ plot.msm <- function(model, path=NA) {
       scale_x_continuous(breaks = seq(10, 100, by = 10)) +
       theme_minimal()
     ggsave(filename = path, plot = plot, device = "pdf")
-    }
+  }
 }
 
 run_remote_msm <- function(data_msm, qmatrix, md = "BFGS", ctrl = 1, cov = "~ 1", name.out.rds) {
@@ -130,15 +130,16 @@ run_remote_msm <- function(data_msm, qmatrix, md = "BFGS", ctrl = 1, cov = "~ 1"
   tryCatch(plot.msm(msm.model, here("Data-Output", "msm",
                                     paste0(str_sub(name.out.rds, end = -5), "_qvalues.pdf"))),
            error = function(e) NA)
-
+  
 }
 
 
 ### Initialise ####
 
+data4aT <- read.csv(here("Data", "BTE", "bte4aT_cov_class.csv"))[,-1]
 
 ## Create statetables:
-msm_state <- statetable.msm(sp_class, TESSELLE, data=data_msm)
+msm_state <- statetable.msm(sp_class, TESSELLE, data=data4aT)
 round(funrar::make_relative(msm_state), 3)
 
 ## Define models through Q matrices
@@ -147,11 +148,11 @@ round(funrar::make_relative(msm_state), 3)
 
 source(here("R-scripts", "03-Analysis", "Multinomial.R"))
 
-if (file.exists(here("Data-Output", "msm", "multinom.rds"))) {
-  mnom <- readRDS(here("Data-Output", "msm", "multinom.rds"))
+if (file.exists(here("Data-Output", "msm", "multinom4aT.rds"))) {
+  mnom <- readRDS(here("Data-Output", "msm", "multinom4aT.rds"))
 } else {
-  mnom <- multinom_model(data_msm)
-  saveRDS(mnom, here("Data-Output", "msm", "multinom.rds"))
+  mnom <- multinom_model(data4aT)
+  saveRDS(mnom, here("Data-Output", "msm", "multinom4aT.rds"))
 }
 
 #To determine which transitions are impossible
@@ -159,7 +160,7 @@ Q.model <- as.matrix(round(mnom, 3))
 
 ## Get initial estimate for Q
 
-Q.init <- crudeinits.msm(sp_class ~ time, TESSELLE, data=data_msm, qmatrix=Q.model)
+Q.init <- crudeinits.msm(sp_class ~ time, TESSELLE, data=data4aT, qmatrix=Q.model)
 
 
 ### Run msm ####
@@ -168,235 +169,241 @@ Q.init <- crudeinits.msm(sp_class ~ time, TESSELLE, data=data_msm, qmatrix=Q.mod
 # run_remote_msm(data_msm = data_msm, qmatrix = Q.init, ctrl = 5000000, name.out.rds = "msm.reg.sc5M.rds")
 
 
-
-
-
 ## Lets create nested loops to try out different things:
 
-if(T) {
-#scaling <- c(5000000, 1)
-#methods <- c("BFGS", "CG", "Nelder-Mead", "nlm", "fisher") #Removed SANN and bobyqa
-
-scaling <- c(1)
-methods <- c("Nelder-Mead", "nlm", "fisher")  
+if(F) {
+  #scaling <- c(5000000, 1)
+  #methods <- c("BFGS", "CG", "Nelder-Mead", "nlm", "fisher") #Removed SANN and bobyqa
   
-for(S in scaling) {
-  for(M in methods) {
-    run_remote_msm(data_msm = data_msm, qmatrix = Q.init, ctrl = S, md = M,
-                   name.out.rds = paste0("msm.", M,".sc", as.character(S), ".rds"))
+  scaling <- c(1)
+  methods <- c("Nelder-Mead", "nlm", "fisher")  
+  
+  for(S in scaling) {
+    for(M in methods) {
+      run_remote_msm(data_msm = data_msm, qmatrix = Q.init, ctrl = S, md = M,
+                     name.out.rds = paste0("msm.", M,".sc", as.character(S), ".rds"))
+    }
   }
 }
-}
-
 
 ### Try nested loop for covariates
-if(F) {
-data_test <- data_msm
-data_test$cov_CMI[is.na(data_test$cov_CMI)] <- mean(data_test$cov_CMI, na.rm =T)
-data_test$cov_Tmean[is.na(data_test$cov_Tmean)] <- mean(data_test$cov_Tmean, na.rm =T)
 
-data_test <- data_test %>% 
+data_sc <- data4aT
+data_sc$cov_CMI[is.na(data_sc$cov_CMI)] <- mean(data_sc$cov_CMI, na.rm =T)
+data_sc$cov_Tmean[is.na(data_sc$cov_Tmean)] <- mean(data_sc$cov_Tmean, na.rm =T)
+data_sc <- data_sc %>% 
   mutate(cov_CMI = (cov_CMI - mean(cov_CMI)) / sd(cov_CMI)) %>% 
   mutate(cov_Tmean = (cov_Tmean - mean(cov_Tmean)) / sd(cov_Tmean))
 
-S <- 5000000
-covariates <- c('~ cov_CMI', '~ cov_Tmean', '~ cov_soil', 
-                '~ cov_CMI + cov_Tmean', '~ cov_Tmean + cov_soil',
-                '~ cov_CMI + cov_soil', '~ cov_CMI + cov_Tmean + cov_soil')
-methods <- c("BFGS", "CG", "Nelder-Mead", "nlm", "fisher") # removed bobyqa and SANN
 
-for(M in methods) {
-  for(C in covariates) {
-    run_remote_msm(data_msm = data_test, qmatrix = Q.init, ctrl = S, md = M,
-                   cov = C,
-                   name.out.rds = paste0("msm.", M,".sc", as.character(S), "_", 
-                                         gsub('[~ cov_]','', C), ".rds"))
+
+#names.subs10 <- names(table(data_test$TESSELLE))[sample.int(length(table(data_test$TESSELLE)), 
+#                                                            0.1 * length(table(data_test$TESSELLE)), replace = FALSE)]
+
+#data_subs10 <- subset(data_test, TESSELLE %in% names.subs10)
+
+
+if(T) {
+  S <- 500000
+  covariates <- c('~ cov_CMI', '~ cov_Tmean', '~ cov_soil', 
+                  '~ cov_CMI + cov_Tmean', '~ cov_Tmean + cov_soil',
+                  '~ cov_CMI + cov_soil', '~ cov_CMI + cov_Tmean + cov_soil')
+  methods <- c("CG", "nlm") # removed bobyqa and SANN
+  
+  for(M in methods) {
+    for(C in covariates) {
+      run_remote_msm(data_msm = data_sc, qmatrix = Q.init, ctrl = S, md = M,
+                     cov = C,
+                     name.out.rds = paste0("msm4aT.", M,".sc", as.character(S), "_", 
+                                           gsub('[~ cov_]','', C), ".rds"))
+    }
   }
+  
 }
-
-}
-if(F) {
-### For future runs ####
-# a <- readRDS(here("Data-Output", "msm", "msm.reg.sc5M.rds"))
-data_test <- data_msm
-data_test$cov_CMI[is.na(data_test$cov_CMI)] <- mean(data_test$cov_CMI, na.rm =T)
-data_test$cov_Tmean[is.na(data_test$cov_Tmean)] <- mean(data_test$cov_Tmean, na.rm =T)
-
-data_test <- data_test %>% 
-  mutate(cov_CMI = (cov_CMI - mean(cov_CMI)) / sd(cov_CMI)) %>% 
-  mutate(cov_Tmean = (cov_Tmean - mean(cov_Tmean)) / sd(cov_Tmean))
-
-run_remote_msm(data_msm = data_test, qmatrix = Q.init, ctrl = 5000000,
-               name.out.rds = "msm.reg.sc5M.COVTEST.rds")
-
-run_remote_msm(data_msm = data_msm, qmatrix = Q.init, ctrl = 5000000, name.out.rds = "msm.reg.sc5M.rds")
-
-run_remote_msm(data_msm = data_test, qmatrix = Q.init, ctrl = 5000000, name.out.rds = "msm.reg.sc5M.rds",
-               cov="~ cov_Tmean")
-
-tst <- msm( sp_class ~ time, subject=TESSELLE, data = data_test,
-     qmatrix = Q.init, control = list(fnscale = 5000000), covariates = as.formula("~ cov_Tmean"))
-
-
-
-
-##---
-#msm.reg <- msm( sp_class ~ time, subject=TESSELLE, data = data_msm, 
-#                qmatrix = Q.init) #numerical overflow in calculating likelihood
-
-#Try some other things
-# msm.sc <- msm( sp_class ~ time, subject=TESSELLE, data = data_msm, 
-#                 qmatrix = Q.init, control = list(fnscale = 5000000))
-# 
-# 
-# data_msm <- data_msm %>% mutate_at(c("cov_CMI", "cov_Tmean"), ~(scale(.) %>% as.vector))
-# msm.sc <- msm( sp_class ~ time, subject=TESSELLE, data = data_msm, 
-#                qmatrix = Q.init, control = list(fnscale = 5000000), covariates = ~ cov_Tmean)
-
-#msm.cg <- msm( sp_class ~ time, subject=TESSELLE, data = data_msm, 
-#                  qmatrix = Q.init, method = "CG")
-
-#msm.sc.cg <- msm( sp_class ~ time, subject=TESSELLE, data = data_msm, 
-#               qmatrix = Q.init, control = list(fnscale = 5000000), method = "CG")
-
-#msm.nm <- msm( sp_class ~ time, subject=TESSELLE, data = data_msm, 
-#                  qmatrix = Q.init, method = "Nelder-Mead")
-
-#msm.sc.nm <- msm( sp_class ~ time, subject=TESSELLE, data = data_msm, 
-#                  qmatrix = Q.init, control = list(fnscale = 5000000), method = "Nelder-Mead")
-
-
-
-
-
-
-
-### Add covariates ###
-
-# msm.sc <- msm( sp_class ~ time, subject=TESSELLE, data = data_msm_filt, 
-#                qmatrix = Q.init, control = list(fnscale = 5000000)) #No global minimum
-
-# msm.sc.cov <- msm( sp_class ~ time, subject=TESSELLE, data = data_msm_filt, 
-#                qmatrix = Q.init, control = list(fnscale = 5000000),
-#                covariates = list("4-6" = ~ cov_soil)) #Crashes Rstudio
-
 
 
 if(F) {
-
-### Try with subset of data ###
-
-#Pick a certain percentage of TESSELLE at random
-names.subs10 <- names(table(data_msm_filt$TESSELLE))[sample.int(length(table(data_msm_filt$TESSELLE)), 
-                                                                0.1 * length(table(data_msm_filt$TESSELLE)), replace = FALSE)]
-names.subs20 <- names(table(data_msm_filt$TESSELLE))[sample.int(length(table(data_msm_filt$TESSELLE)), 
-                                                                0.2 * length(table(data_msm_filt$TESSELLE)), replace = FALSE)]
-names.subs05 <- names(table(data_msm_filt$TESSELLE))[sample.int(length(table(data_msm_filt$TESSELLE)), 
-                                                                0.05 * length(table(data_msm_filt$TESSELLE)), replace = FALSE)]
-names.subs01 <- names(table(data_msm_filt$TESSELLE))[sample.int(length(table(data_msm_filt$TESSELLE)), 
-                                                                0.01 * length(table(data_msm_filt$TESSELLE)), replace = FALSE)]
-
-#Subset data
-data_subs10 <- subset(data_msm_filt, TESSELLE %in% names.subs10)
-data_subs20 <- subset(data_msm_filt, TESSELLE %in% names.subs20)
-data_subs05 <- subset(data_msm_filt, TESSELLE %in% names.subs05)
-data_subs01 <- subset(data_msm_filt, TESSELLE %in% names.subs01)
-
-##
-msm.sub10 <- msm( sp_class ~ time, subject=TESSELLE, data = data_subs10, 
-               qmatrix = Q.init, control = list(fnscale = 5000000)) #Reported estimates are not the maximum likelihood.
-msm.sub20 <- msm( sp_class ~ time, subject=TESSELLE, data = data_subs20, 
-                  qmatrix = Q.init, control = list(fnscale = 5000000)) #Reported estimates are not the maximum likelihood.
-msm.sub05 <- msm( sp_class ~ time, subject=TESSELLE, data = data_subs05, 
-                  qmatrix = Q.init, control = list(fnscale = 5000000)) #Reported estimates are not the maximum likelihood.
-msm.sub01 <- msm( sp_class ~ time, subject=TESSELLE, data = data_subs01, 
-                  qmatrix = Q.init, control = list(fnscale = 5000000)) #Reported estimates are not the maximum likelihood.
-
-plot.msm(msm.sc)
-plot.msm(msm.sub10)
-plot.msm(msm.sub20)
-plot.msm(msm.sub05)
-plot.msm(msm.sub01)
-
-#plot
-index <- seq(1, 9, by=1)
-transitions <- c()
-for(i in index) {
-  for(j in index[-i]) {
-    transitions <- c(transitions, 10*i + j%%10)
+  ### For future runs ####
+  # a <- readRDS(here("Data-Output", "msm", "msm.reg.sc5M.rds"))
+  data_test <- data_msm
+  data_test$cov_CMI[is.na(data_test$cov_CMI)] <- mean(data_test$cov_CMI, na.rm =T)
+  data_test$cov_Tmean[is.na(data_test$cov_Tmean)] <- mean(data_test$cov_Tmean, na.rm =T)
+  
+  data_test <- data_test %>% 
+    mutate(cov_CMI = (cov_CMI - mean(cov_CMI)) / sd(cov_CMI)) %>% 
+    mutate(cov_Tmean = (cov_Tmean - mean(cov_Tmean)) / sd(cov_Tmean))
+  
+  run_remote_msm(data_msm = data_test, qmatrix = Q.init, ctrl = 5000000,
+                 name.out.rds = "msm.reg.sc5M.COVTEST.rds")
+  
+  run_remote_msm(data_msm = data_msm, qmatrix = Q.init, ctrl = 5000000, name.out.rds = "msm.reg.sc5M.rds")
+  
+  run_remote_msm(data_msm = data_test, qmatrix = Q.init, ctrl = 5000000, name.out.rds = "msm.reg.sc5M.rds",
+                 cov="~ cov_Tmean")
+  
+  tst <- msm( sp_class ~ time, subject=TESSELLE, data = data_test,
+              qmatrix = Q.init, control = list(fnscale = 5000000), covariates = as.formula("~ cov_Tmean"))
+  
+  
+  
+  
+  ##---
+  #msm.reg <- msm( sp_class ~ time, subject=TESSELLE, data = data_msm, 
+  #                qmatrix = Q.init) #numerical overflow in calculating likelihood
+  
+  #Try some other things
+  # msm.sc <- msm( sp_class ~ time, subject=TESSELLE, data = data_msm, 
+  #                 qmatrix = Q.init, control = list(fnscale = 5000000))
+  # 
+  # 
+  # data_msm <- data_msm %>% mutate_at(c("cov_CMI", "cov_Tmean"), ~(scale(.) %>% as.vector))
+  # msm.sc <- msm( sp_class ~ time, subject=TESSELLE, data = data_msm, 
+  #                qmatrix = Q.init, control = list(fnscale = 5000000), covariates = ~ cov_Tmean)
+  
+  #msm.cg <- msm( sp_class ~ time, subject=TESSELLE, data = data_msm, 
+  #                  qmatrix = Q.init, method = "CG")
+  
+  #msm.sc.cg <- msm( sp_class ~ time, subject=TESSELLE, data = data_msm, 
+  #               qmatrix = Q.init, control = list(fnscale = 5000000), method = "CG")
+  
+  #msm.nm <- msm( sp_class ~ time, subject=TESSELLE, data = data_msm, 
+  #                  qmatrix = Q.init, method = "Nelder-Mead")
+  
+  #msm.sc.nm <- msm( sp_class ~ time, subject=TESSELLE, data = data_msm, 
+  #                  qmatrix = Q.init, control = list(fnscale = 5000000), method = "Nelder-Mead")
+  
+  
+  
+  
+  
+  
+  
+  ### Add covariates ###
+  
+  # msm.sc <- msm( sp_class ~ time, subject=TESSELLE, data = data_msm_filt, 
+  #                qmatrix = Q.init, control = list(fnscale = 5000000)) #No global minimum
+  
+  # msm.sc.cov <- msm( sp_class ~ time, subject=TESSELLE, data = data_msm_filt, 
+  #                qmatrix = Q.init, control = list(fnscale = 5000000),
+  #                covariates = list("4-6" = ~ cov_soil)) #Crashes Rstudio
+  
+  
+  
+  if(F) {
+    
+    ### Try with subset of data ###
+    
+    #Pick a certain percentage of TESSELLE at random
+    names.subs10 <- names(table(data_msm_filt$TESSELLE))[sample.int(length(table(data_msm_filt$TESSELLE)), 
+                                                                    0.1 * length(table(data_msm_filt$TESSELLE)), replace = FALSE)]
+    names.subs20 <- names(table(data_msm_filt$TESSELLE))[sample.int(length(table(data_msm_filt$TESSELLE)), 
+                                                                    0.2 * length(table(data_msm_filt$TESSELLE)), replace = FALSE)]
+    names.subs05 <- names(table(data_msm_filt$TESSELLE))[sample.int(length(table(data_msm_filt$TESSELLE)), 
+                                                                    0.05 * length(table(data_msm_filt$TESSELLE)), replace = FALSE)]
+    names.subs01 <- names(table(data_msm_filt$TESSELLE))[sample.int(length(table(data_msm_filt$TESSELLE)), 
+                                                                    0.01 * length(table(data_msm_filt$TESSELLE)), replace = FALSE)]
+    
+    #Subset data
+    data_subs10 <- subset(data_msm_filt, TESSELLE %in% names.subs10)
+    data_subs20 <- subset(data_msm_filt, TESSELLE %in% names.subs20)
+    data_subs05 <- subset(data_msm_filt, TESSELLE %in% names.subs05)
+    data_subs01 <- subset(data_msm_filt, TESSELLE %in% names.subs01)
+    
+    ##
+    msm.sub10 <- msm( sp_class ~ time, subject=TESSELLE, data = data_subs10, 
+                      qmatrix = Q.init, control = list(fnscale = 5000000)) #Reported estimates are not the maximum likelihood.
+    msm.sub20 <- msm( sp_class ~ time, subject=TESSELLE, data = data_subs20, 
+                      qmatrix = Q.init, control = list(fnscale = 5000000)) #Reported estimates are not the maximum likelihood.
+    msm.sub05 <- msm( sp_class ~ time, subject=TESSELLE, data = data_subs05, 
+                      qmatrix = Q.init, control = list(fnscale = 5000000)) #Reported estimates are not the maximum likelihood.
+    msm.sub01 <- msm( sp_class ~ time, subject=TESSELLE, data = data_subs01, 
+                      qmatrix = Q.init, control = list(fnscale = 5000000)) #Reported estimates are not the maximum likelihood.
+    
+    plot.msm(msm.sc)
+    plot.msm(msm.sub10)
+    plot.msm(msm.sub20)
+    plot.msm(msm.sub05)
+    plot.msm(msm.sub01)
+    
+    #plot
+    index <- seq(1, 9, by=1)
+    transitions <- c()
+    for(i in index) {
+      for(j in index[-i]) {
+        transitions <- c(transitions, 10*i + j%%10)
+      }
+    }
+    
+    df <- data.frame(trans=transitions, est=msm.sc$estimates.t, ci_l=msm.sc$ci[,1], ci_h=msm.sc$ci[,2],
+                     v10=msm.sub10$estimates.t, v10_l=msm.sub10$ci[,1], v10_h=msm.sub10$ci[,2],
+                     v20=msm.sub20$estimates.t, v20_l=msm.sub20$ci[,1], v20_h=msm.sub20$ci[,2],
+                     v05=msm.sub05$estimates.t, v05_l=msm.sub05$ci[,1], v05_h=msm.sub05$ci[,2],
+                     v01=msm.sub01$estimates.t, v01_l=msm.sub01$ci[,1], v01_h=msm.sub01$ci[,2])
+    
+    ggplot(df) +
+      geom_point(aes(x=trans-0.5, y=est), col="black") +
+      geom_errorbar(aes(x=trans-0.5, y=est, ymin=ci_l, ymax=ci_h), col="black") +
+      geom_point(aes(x=trans - 0.25, y=v20), col="blue") +
+      geom_errorbar(aes(x=trans - 0.25, y=v20, ymin=v20_l, ymax=v20_h), col="blue") +
+      geom_point(aes(x=trans + 0.0, y=v10), col="orange") +
+      geom_errorbar(aes(x=trans + 0.0, y=v10, ymin=v10_l, ymax=v10_h), col="orange") +
+      geom_point(aes(x=trans + 0.25, y=v05), col="red") +
+      geom_errorbar(aes(x=trans + 0.25, y=v05, ymin=v05_l, ymax=v05_h), col="red") +
+      geom_point(aes(x=trans + 0.5, y=v01), col="purple") +
+      geom_errorbar(aes(x=trans + 0.55, y=v01, ymin=v01_l, ymax=v01_h), col="purple") +
+      labs(x = "Transition",
+           y = "Estimated q") +
+      theme_minimal()
+    
+    ggplot(df) +
+      geom_point(aes(x=trans-0.5, y=est), col="black") +
+      geom_errorbar(aes(x=trans-0.5, y=est, ymin=ci_l, ymax=ci_h), col="black") +
+      geom_point(aes(x=trans - 0.25, y=v20), col="blue") +
+      geom_errorbar(aes(x=trans - 0.25, y=v20, ymin=v20_l, ymax=v20_h), col="blue") +
+      geom_point(aes(x=trans + 0.0, y=v10), col="orange") +
+      geom_errorbar(aes(x=trans + 0.0, y=v10, ymin=v10_l, ymax=v10_h), col="orange") +
+      geom_point(aes(x=trans + 0.25, y=v05), col="red") +
+      geom_errorbar(aes(x=trans + 0.25, y=v05, ymin=v05_l, ymax=v05_h), col="red") +
+      geom_point(aes(x=trans + 0.5, y=v01), col="purple") +
+      geom_errorbar(aes(x=trans + 0.55, y=v01, ymin=v01_l, ymax=v01_h), col="purple") +
+      labs(x = "Transition",
+           y = "Estimated q") +
+      xlim(c(11,25)) +
+      theme_minimal()
+    
+    ggplot(df) +
+      geom_point(aes(x=trans-0.5, y=est), col="black") +
+      geom_errorbar(aes(x=trans-0.5, y=est, ymin=ci_l, ymax=ci_h), col="black") +
+      geom_point(aes(x=trans - 0.25, y=v20), col="blue") +
+      geom_errorbar(aes(x=trans - 0.25, y=v20, ymin=v20_l, ymax=v20_h), col="blue") +
+      geom_point(aes(x=trans + 0.0, y=v10), col="orange") +
+      geom_errorbar(aes(x=trans + 0.0, y=v10, ymin=v10_l, ymax=v10_h), col="orange") +
+      geom_point(aes(x=trans + 0.25, y=v05), col="red") +
+      geom_errorbar(aes(x=trans + 0.25, y=v05, ymin=v05_l, ymax=v05_h), col="red") +
+      geom_point(aes(x=trans + 0.5, y=v01), col="purple") +
+      geom_errorbar(aes(x=trans + 0.55, y=v01, ymin=v01_l, ymax=v01_h), col="purple") +
+      labs(x = "Transition",
+           y = "Estimated q") +
+      xlim(c(70,98)) +
+      theme_minimal()
+    
+    ## Pmatrix for each
+    round(pmatrix.msm(msm.sc, t=10), 4)
+    round(pmatrix.msm(msm.sub10, t=10), 4)
+    round(pmatrix.msm(msm.sub20, t=10), 4)
+    round(pmatrix.msm(msm.sub05, t=10), 4)
+    round(pmatrix.msm(msm.sub01, t=10), 4)
+    
+    
+    ##Now try subset with covariates
+    msm.sub05.cov <- msm( sp_class ~ time, subject=TESSELLE, data = data_subs05, 
+                          qmatrix = Q.init, control = list(fnscale = 5000000),
+                          covariates = list("4-6" = ~ cov_soil)) #
+    
+    ##
+    
+    table(data_msm$cov_soil)
+    
+    head(data_msm[data_msm$cov_soil=="  ",])
   }
-}
-
-df <- data.frame(trans=transitions, est=msm.sc$estimates.t, ci_l=msm.sc$ci[,1], ci_h=msm.sc$ci[,2],
-                 v10=msm.sub10$estimates.t, v10_l=msm.sub10$ci[,1], v10_h=msm.sub10$ci[,2],
-                 v20=msm.sub20$estimates.t, v20_l=msm.sub20$ci[,1], v20_h=msm.sub20$ci[,2],
-                 v05=msm.sub05$estimates.t, v05_l=msm.sub05$ci[,1], v05_h=msm.sub05$ci[,2],
-                 v01=msm.sub01$estimates.t, v01_l=msm.sub01$ci[,1], v01_h=msm.sub01$ci[,2])
-
-ggplot(df) +
-  geom_point(aes(x=trans-0.5, y=est), col="black") +
-  geom_errorbar(aes(x=trans-0.5, y=est, ymin=ci_l, ymax=ci_h), col="black") +
-  geom_point(aes(x=trans - 0.25, y=v20), col="blue") +
-  geom_errorbar(aes(x=trans - 0.25, y=v20, ymin=v20_l, ymax=v20_h), col="blue") +
-  geom_point(aes(x=trans + 0.0, y=v10), col="orange") +
-  geom_errorbar(aes(x=trans + 0.0, y=v10, ymin=v10_l, ymax=v10_h), col="orange") +
-  geom_point(aes(x=trans + 0.25, y=v05), col="red") +
-  geom_errorbar(aes(x=trans + 0.25, y=v05, ymin=v05_l, ymax=v05_h), col="red") +
-  geom_point(aes(x=trans + 0.5, y=v01), col="purple") +
-  geom_errorbar(aes(x=trans + 0.55, y=v01, ymin=v01_l, ymax=v01_h), col="purple") +
-  labs(x = "Transition",
-       y = "Estimated q") +
-  theme_minimal()
-
-ggplot(df) +
-  geom_point(aes(x=trans-0.5, y=est), col="black") +
-  geom_errorbar(aes(x=trans-0.5, y=est, ymin=ci_l, ymax=ci_h), col="black") +
-  geom_point(aes(x=trans - 0.25, y=v20), col="blue") +
-  geom_errorbar(aes(x=trans - 0.25, y=v20, ymin=v20_l, ymax=v20_h), col="blue") +
-  geom_point(aes(x=trans + 0.0, y=v10), col="orange") +
-  geom_errorbar(aes(x=trans + 0.0, y=v10, ymin=v10_l, ymax=v10_h), col="orange") +
-  geom_point(aes(x=trans + 0.25, y=v05), col="red") +
-  geom_errorbar(aes(x=trans + 0.25, y=v05, ymin=v05_l, ymax=v05_h), col="red") +
-  geom_point(aes(x=trans + 0.5, y=v01), col="purple") +
-  geom_errorbar(aes(x=trans + 0.55, y=v01, ymin=v01_l, ymax=v01_h), col="purple") +
-  labs(x = "Transition",
-       y = "Estimated q") +
-  xlim(c(11,25)) +
-  theme_minimal()
-
-ggplot(df) +
-  geom_point(aes(x=trans-0.5, y=est), col="black") +
-  geom_errorbar(aes(x=trans-0.5, y=est, ymin=ci_l, ymax=ci_h), col="black") +
-  geom_point(aes(x=trans - 0.25, y=v20), col="blue") +
-  geom_errorbar(aes(x=trans - 0.25, y=v20, ymin=v20_l, ymax=v20_h), col="blue") +
-  geom_point(aes(x=trans + 0.0, y=v10), col="orange") +
-  geom_errorbar(aes(x=trans + 0.0, y=v10, ymin=v10_l, ymax=v10_h), col="orange") +
-  geom_point(aes(x=trans + 0.25, y=v05), col="red") +
-  geom_errorbar(aes(x=trans + 0.25, y=v05, ymin=v05_l, ymax=v05_h), col="red") +
-  geom_point(aes(x=trans + 0.5, y=v01), col="purple") +
-  geom_errorbar(aes(x=trans + 0.55, y=v01, ymin=v01_l, ymax=v01_h), col="purple") +
-  labs(x = "Transition",
-       y = "Estimated q") +
-  xlim(c(70,98)) +
-  theme_minimal()
-
-## Pmatrix for each
-round(pmatrix.msm(msm.sc, t=10), 4)
-round(pmatrix.msm(msm.sub10, t=10), 4)
-round(pmatrix.msm(msm.sub20, t=10), 4)
-round(pmatrix.msm(msm.sub05, t=10), 4)
-round(pmatrix.msm(msm.sub01, t=10), 4)
-
-
-##Now try subset with covariates
-msm.sub05.cov <- msm( sp_class ~ time, subject=TESSELLE, data = data_subs05, 
-                  qmatrix = Q.init, control = list(fnscale = 5000000),
-                  covariates = list("4-6" = ~ cov_soil)) #
-
-##
-
-table(data_msm$cov_soil)
-
-head(data_msm[data_msm$cov_soil=="  ",])
-}
 }
