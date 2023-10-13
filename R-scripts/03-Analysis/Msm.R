@@ -14,6 +14,7 @@ library(conflicted)
 conflicts_prefer(dplyr::filter)
 
 ### Data ####
+
 if(F) {
   data <- read.csv(here("Data", "BTE", "bte_cov_class.csv"))[,-1]
   sum(is.na(data$cov_time_pert))
@@ -53,9 +54,105 @@ if(F) {
     select(-unique)
   
   write.csv(data_mult_filt, here("Data", "BTE", "bte_msm_ready.csv"))
+  
+  bM <- data_mult_filt %>% 
+    filter(SREG_ECO == "4bM")
+  
+  write.csv(bM, here("Data", "BTE", "bte4bM_msm_ready.csv"))
+  
+#  plot(data_mult_filt$LONGI, data_mult_filt$LATIT)
+#  points(d$LONGI, d$LATIT, col="red")
 }
 
-data_msm <- read.csv(here("Data", "BTE", "bte_msm_ready.csv"))[,-1]
+if(F) { # Check up on perturbations
+  plot(data$LONGI, data$LATIT)
+  points(data4bM$LONGI, data4bM$LATIT, col='red')
+  
+  data4bM <- read.csv(here("Data", "BTE", "bte4bM_msm_ready.csv"))
+  length(table(data4bM$TESSELLE))
+
+  data4bM <- data4bM %>% 
+    relocate(TESSELLE, .before=1) %>% 
+    relocate(cov_CMI, cov_Tmean, .before=cov_soil) %>% 
+    relocate(dom_sp, sp_class, time, .after=GEOCODE)
+  
+  backup <- data4bM
+  
+  #Fix Soil
+  tab <- unique(data4bM$TESSELLE)
+  
+  for(t in tab) {
+    filtered <- data4bM %>% filter(TESSELLE == t)
+    
+    soil <- filtered$cov_soil
+    print(soil)
+    if(sum(! is.na(soil) > 0)) {
+      soil.dom <- as.numeric(names(sort(table(soil), decreasing=TRUE)[1]))
+      
+      #First fix the NA:
+      soil[is.na(soil)] <- soil.dom
+      #Now the weird values
+      soil[soil != soil.dom] <- soil.dom
+      print(soil)
+    }
+    data4bM$cov_soil[data4bM$TESSELLE == t] <- soil
+
+  }  
+  
+  
+  #Fix perturbations
+  #data4bM <- backup
+  
+  tab <- unique(data4bM$TESSELLE)
+  
+  for(t in tab) {
+    filtered <- data4bM %>% filter(TESSELLE == t)
+    
+    # First only proceed with tesselle that have at least one perturbation
+    if(max(filtered$cov_pert_class) > 0 && sum(!is.na(filtered$AN_ORIGINE)) > 0){
+      pert <- cbind(filtered$ORIGINE, filtered$AN_ORIGINE)
+
+      pert_filt <- unique(matrix(pert[complete.cases(pert), ], ncol=2))
+
+      if(nrow(pert_filt) == 1) {
+        pert_filt <- rbind(pert_filt, c("FAKE", 3000)) #Add artificial line that will never be used
+      } else(print(t))
+      
+      pert_filt <- pert_filt[order(pert_filt[,2],decreasing=F),]
+      
+      p.type <- pert_filt[1, 1]
+      p.year <- as.numeric(pert_filt[1, 2])
+      
+      for(k in 1:nrow(filtered)){
+        c.year <- filtered$year[k]
+        
+        if(c.year > as.numeric(pert_filt[2, 2])) {
+          p.type <- pert_filt[2, 1]
+          p.year <- as.numeric(pert_filt[2, 2])
+        }
+        
+        if(c.year > p.year){
+          filtered$ORIGINE[k] <- p.type
+          filtered$AN_ORIGINE[k] <- p.year
+        }
+      }
+      data4bM[data4bM$TESSELLE == t,] <- filtered
+    }
+  } 
+
+  b <- data4bM
+  
+  # Now update the cov_columns:
+  perturbation.matrix <- t(mapply(determine_perturb_class, data4bM$ORIGINE, 
+                                  data4bM$AN_ORIGINE, data4bM$year))
+  
+  data4bM$cov_pert_class <- factor(perturbation.matrix[,1])
+  data4bM$cov_pert_sev <- factor(perturbation.matrix[,2])
+  data4bM$cov_time_pert <- perturbation.matrix[,3]
+  
+  #Write out result
+  write.csv(data4bM, here("Data", "BTE", "bte4bM_msm_ready.csv"))
+}  
 
 ### Functions ####
 
@@ -135,11 +232,10 @@ run_remote_msm <- function(data_msm, qmatrix, md = "BFGS", ctrl = 1, cov = "~ 1"
 
 
 ### Initialise ####
-
-data4aT <- read.csv(here("Data", "BTE", "bte4aT_cov_class.csv"))[,-1]
+data4bM <- read.csv(here("Data", "BTE", "bte4bM_msm_ready.csv"))
 
 ## Create statetables:
-msm_state <- statetable.msm(sp_class, TESSELLE, data=data4aT)
+msm_state <- statetable.msm(sp_class, TESSELLE, data=data4bM)
 round(funrar::make_relative(msm_state), 3)
 
 ## Define models through Q matrices
@@ -148,11 +244,11 @@ round(funrar::make_relative(msm_state), 3)
 
 source(here("R-scripts", "03-Analysis", "Multinomial.R"))
 
-if (file.exists(here("Data-Output", "msm", "multinom4aT.rds"))) {
-  mnom <- readRDS(here("Data-Output", "msm", "multinom4aT.rds"))
+if (file.exists(here("Data-Output", "msm", "multinom4bM.rds"))) {
+  mnom <- readRDS(here("Data-Output", "msm", "multinom4bM.rds"))
 } else {
-  mnom <- multinom_model(data4aT)
-  saveRDS(mnom, here("Data-Output", "msm", "multinom4aT.rds"))
+  mnom <- multinom_model(data4bM)
+  saveRDS(mnom, here("Data-Output", "msm", "multinom4bM.rds"))
 }
 
 #To determine which transitions are impossible
@@ -160,7 +256,7 @@ Q.model <- as.matrix(round(mnom, 3))
 
 ## Get initial estimate for Q
 
-Q.init <- crudeinits.msm(sp_class ~ time, TESSELLE, data=data4aT, qmatrix=Q.model)
+Q.init <- crudeinits.msm(sp_class ~ time, TESSELLE, data=data4bM, qmatrix=Q.model)
 
 
 ### Run msm ####
@@ -188,13 +284,12 @@ if(F) {
 
 ### Try nested loop for covariates
 
-data_sc <- data4aT
+data_sc <- data4bM
 data_sc$cov_CMI[is.na(data_sc$cov_CMI)] <- mean(data_sc$cov_CMI, na.rm =T)
 data_sc$cov_Tmean[is.na(data_sc$cov_Tmean)] <- mean(data_sc$cov_Tmean, na.rm =T)
 data_sc <- data_sc %>% 
   mutate(cov_CMI = (cov_CMI - mean(cov_CMI)) / sd(cov_CMI)) %>% 
   mutate(cov_Tmean = (cov_Tmean - mean(cov_Tmean)) / sd(cov_Tmean))
-
 
 
 #names.subs10 <- names(table(data_test$TESSELLE))[sample.int(length(table(data_test$TESSELLE)), 
@@ -203,7 +298,7 @@ data_sc <- data_sc %>%
 #data_subs10 <- subset(data_test, TESSELLE %in% names.subs10)
 
 
-if(T) {
+if(F) {
   S <- 500000
   covariates <- c('~ cov_CMI', '~ cov_Tmean', '~ cov_soil', 
                   '~ cov_CMI + cov_Tmean', '~ cov_Tmean + cov_soil',
@@ -214,7 +309,27 @@ if(T) {
     for(C in covariates) {
       run_remote_msm(data_msm = data_sc, qmatrix = Q.init, ctrl = S, md = M,
                      cov = C,
-                     name.out.rds = paste0("msm4aT.", M,".sc", as.character(S), "_", 
+                     name.out.rds = paste0("msm4bM.", M,".sc", as.character(S), "_", 
+                                           gsub('[~ cov_]','', C), ".rds"))
+    }
+  }
+  
+}
+
+## Now for perturbation
+
+if(F) {
+  S <- 500000
+  covariates <- c('~ cov_pert_class', '~ cov_time_pert', 
+                  '~ cov_pert_class + cov_Tmean', '~ cov_pert_class + cov_time_pert',
+                  '~ cov_pert_class + cov_time_pert + cov_Tmean')
+  methods <- c("CG")
+  
+  for(M in methods) {
+    for(C in covariates) {
+      run_remote_msm(data_msm = data_sc, qmatrix = Q.init, ctrl = S, md = M,
+                     cov = C,
+                     name.out.rds = paste0("msm4bM.", M,".sc", as.character(S), "_", 
                                            gsub('[~ cov_]','', C), ".rds"))
     }
   }
@@ -224,70 +339,7 @@ if(T) {
 
 if(F) {
   ### For future runs ####
-  # a <- readRDS(here("Data-Output", "msm", "msm.reg.sc5M.rds"))
-  data_test <- data_msm
-  data_test$cov_CMI[is.na(data_test$cov_CMI)] <- mean(data_test$cov_CMI, na.rm =T)
-  data_test$cov_Tmean[is.na(data_test$cov_Tmean)] <- mean(data_test$cov_Tmean, na.rm =T)
-  
-  data_test <- data_test %>% 
-    mutate(cov_CMI = (cov_CMI - mean(cov_CMI)) / sd(cov_CMI)) %>% 
-    mutate(cov_Tmean = (cov_Tmean - mean(cov_Tmean)) / sd(cov_Tmean))
-  
-  run_remote_msm(data_msm = data_test, qmatrix = Q.init, ctrl = 5000000,
-                 name.out.rds = "msm.reg.sc5M.COVTEST.rds")
-  
-  run_remote_msm(data_msm = data_msm, qmatrix = Q.init, ctrl = 5000000, name.out.rds = "msm.reg.sc5M.rds")
-  
-  run_remote_msm(data_msm = data_test, qmatrix = Q.init, ctrl = 5000000, name.out.rds = "msm.reg.sc5M.rds",
-                 cov="~ cov_Tmean")
-  
-  tst <- msm( sp_class ~ time, subject=TESSELLE, data = data_test,
-              qmatrix = Q.init, control = list(fnscale = 5000000), covariates = as.formula("~ cov_Tmean"))
-  
-  
-  
-  
-  ##---
-  #msm.reg <- msm( sp_class ~ time, subject=TESSELLE, data = data_msm, 
-  #                qmatrix = Q.init) #numerical overflow in calculating likelihood
-  
-  #Try some other things
-  # msm.sc <- msm( sp_class ~ time, subject=TESSELLE, data = data_msm, 
-  #                 qmatrix = Q.init, control = list(fnscale = 5000000))
-  # 
-  # 
-  # data_msm <- data_msm %>% mutate_at(c("cov_CMI", "cov_Tmean"), ~(scale(.) %>% as.vector))
-  # msm.sc <- msm( sp_class ~ time, subject=TESSELLE, data = data_msm, 
-  #                qmatrix = Q.init, control = list(fnscale = 5000000), covariates = ~ cov_Tmean)
-  
-  #msm.cg <- msm( sp_class ~ time, subject=TESSELLE, data = data_msm, 
-  #                  qmatrix = Q.init, method = "CG")
-  
-  #msm.sc.cg <- msm( sp_class ~ time, subject=TESSELLE, data = data_msm, 
-  #               qmatrix = Q.init, control = list(fnscale = 5000000), method = "CG")
-  
-  #msm.nm <- msm( sp_class ~ time, subject=TESSELLE, data = data_msm, 
-  #                  qmatrix = Q.init, method = "Nelder-Mead")
-  
-  #msm.sc.nm <- msm( sp_class ~ time, subject=TESSELLE, data = data_msm, 
-  #                  qmatrix = Q.init, control = list(fnscale = 5000000), method = "Nelder-Mead")
-  
-  
-  
-  
-  
-  
-  
-  ### Add covariates ###
-  
-  # msm.sc <- msm( sp_class ~ time, subject=TESSELLE, data = data_msm_filt, 
-  #                qmatrix = Q.init, control = list(fnscale = 5000000)) #No global minimum
-  
-  # msm.sc.cov <- msm( sp_class ~ time, subject=TESSELLE, data = data_msm_filt, 
-  #                qmatrix = Q.init, control = list(fnscale = 5000000),
-  #                covariates = list("4-6" = ~ cov_soil)) #Crashes Rstudio
-  
-  
+
   
   if(F) {
     
@@ -393,17 +445,6 @@ if(F) {
     round(pmatrix.msm(msm.sub20, t=10), 4)
     round(pmatrix.msm(msm.sub05, t=10), 4)
     round(pmatrix.msm(msm.sub01, t=10), 4)
-    
-    
-    ##Now try subset with covariates
-    msm.sub05.cov <- msm( sp_class ~ time, subject=TESSELLE, data = data_subs05, 
-                          qmatrix = Q.init, control = list(fnscale = 5000000),
-                          covariates = list("4-6" = ~ cov_soil)) #
-    
-    ##
-    
-    table(data_msm$cov_soil)
-    
-    head(data_msm[data_msm$cov_soil=="  ",])
+
   }
 }

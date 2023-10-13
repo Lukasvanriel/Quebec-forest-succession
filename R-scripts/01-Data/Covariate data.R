@@ -151,7 +151,7 @@ bte5_noP_dt <- clim5.dt[bte5_noP_dt, on = c("TESSELLE", "year")]
 
 ##Soil
 extract_soil_cov <- function(df) {
-  df$number_only <- as.integer(gsub("[^0-9]", "", df$cov_soil))
+  df$number_only <- as.integer(gsub("[^0-9]", "", df$STRATE_SIFORT)) %% 10
 }
 
 bte1_noP_dt$cov_soil <- extract_soil_cov(bte1_noP_dt)
@@ -160,7 +160,9 @@ bte3_noP_dt$cov_soil <- extract_soil_cov(bte3_noP_dt)
 bte4_noP_dt$cov_soil <- extract_soil_cov(bte4_noP_dt)
 bte5_noP_dt$cov_soil <- extract_soil_cov(bte5_noP_dt)
 
-sum(is.na(bte1_noP_dt$cov_soil))
+#Ensure soil class stays the same over time
+
+
 
 ##Perturbations
 #TODO: fix missing NA's in perturbation dates
@@ -199,15 +201,15 @@ determine_perturb_class <- function(pert_string, pert_time, meas_time) {
 time_since(NA, 2000)
 
 perturbation.matrix1 <- t(mapply(determine_perturb_class, bte1_noP_dt$ORIGINE, 
-                                 bte1_noP_dt$AN_PERTURB, bte1_noP_dt$year))
+                                 bte1_noP_dt$AN_ORIGINE, bte1_noP_dt$year))
 perturbation.matrix2 <- t(mapply(determine_perturb_class, bte2_noP_dt$ORIGINE, 
-                                 bte2_noP_dt$AN_PERTURB, bte2_noP_dt$year))
+                                 bte2_noP_dt$AN_ORIGINE, bte2_noP_dt$year))
 perturbation.matrix3 <- t(mapply(determine_perturb_class, bte3_noP_dt$ORIGINE, 
-                                 bte3_noP_dt$AN_PERTURB, bte3_noP_dt$year))
+                                 bte3_noP_dt$AN_ORIGINE, bte3_noP_dt$year))
 perturbation.matrix4 <- t(mapply(determine_perturb_class, bte4_noP_dt$ORIGINE, 
-                                 bte4_noP_dt$AN_PERTURB, bte4_noP_dt$year))
+                                 bte4_noP_dt$AN_ORIGINE, bte4_noP_dt$year))
 perturbation.matrix5 <- t(mapply(determine_perturb_class, bte5_noP_dt$ORIGINE, 
-                                 bte5_noP_dt$AN_PERTURB, bte5_noP_dt$year))
+                                 bte5_noP_dt$AN_ORIGINE, bte5_noP_dt$year))
 
 # Add to dataset
 bte1_noP_dt$cov_pert_class <- factor(perturbation.matrix1[,1])

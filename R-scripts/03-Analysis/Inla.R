@@ -46,7 +46,7 @@ st
 
 ##Prepare the survival objects
 #First create the empty event dataframes:
-helper <- seq(1,10, by=1)
+helper <- seq(1,9, by=1)
 transitions <- c()
 for(i in helper) {
   for(j in helper[-i]) {
