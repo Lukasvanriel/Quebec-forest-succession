@@ -152,7 +152,25 @@ if(F) { # Check up on perturbations
   
   #Write out result
   write.csv(data4bM, here("Data", "BTE", "bte4bM_msm_ready.csv"))
-}  
+} 
+
+data4bM <- read_csv(here("Data", "BTE", "bte4bM_msm_ready.csv"),
+                    col_types = cols(.default = col_guess(),
+                                     sp_class = col_integer(),
+                                     cov_soil = col_factor(),
+                                     cov_pert_class = col_factor(),
+                                     cov_pert_sev = col_factor(),
+                                     cov_time_pert = col_double())) %>% 
+  select(-c(...1, X))
+
+# Rescale covariates where necessary. Add column classes
+data_sc <- data4bM
+data_sc$cov_CMI[is.na(data_sc$cov_CMI)] <- mean(data_sc$cov_CMI, na.rm =T)
+data_sc$cov_Tmean[is.na(data_sc$cov_Tmean)] <- mean(data_sc$cov_Tmean, na.rm =T)
+data_sc <- data_sc %>% 
+  mutate(cov_CMI = (cov_CMI - mean(cov_CMI)) / sd(cov_CMI)) %>% 
+  mutate(cov_Tmean = (cov_Tmean - mean(cov_Tmean)) / sd(cov_Tmean)) %>% 
+  mutate(cov_time_pert = cov_time_pert / 100)
 
 ### Functions ####
 
@@ -232,7 +250,6 @@ run_remote_msm <- function(data_msm, qmatrix, md = "BFGS", ctrl = 1, cov = "~ 1"
 
 
 ### Initialise ####
-data4bM <- read.csv(here("Data", "BTE", "bte4bM_msm_ready.csv"))
 
 ## Create statetables:
 msm_state <- statetable.msm(sp_class, TESSELLE, data=data4bM)
@@ -284,20 +301,6 @@ if(F) {
 
 ### Try nested loop for covariates
 
-data_sc <- data4bM
-data_sc$cov_CMI[is.na(data_sc$cov_CMI)] <- mean(data_sc$cov_CMI, na.rm =T)
-data_sc$cov_Tmean[is.na(data_sc$cov_Tmean)] <- mean(data_sc$cov_Tmean, na.rm =T)
-data_sc <- data_sc %>% 
-  mutate(cov_CMI = (cov_CMI - mean(cov_CMI)) / sd(cov_CMI)) %>% 
-  mutate(cov_Tmean = (cov_Tmean - mean(cov_Tmean)) / sd(cov_Tmean))
-
-
-#names.subs10 <- names(table(data_test$TESSELLE))[sample.int(length(table(data_test$TESSELLE)), 
-#                                                            0.1 * length(table(data_test$TESSELLE)), replace = FALSE)]
-
-#data_subs10 <- subset(data_test, TESSELLE %in% names.subs10)
-
-
 if(F) {
   S <- 500000
   covariates <- c('~ cov_CMI', '~ cov_Tmean', '~ cov_soil', 
@@ -337,11 +340,11 @@ if(F) {
 }
 
 
-if(F) {
-  ### For future runs ####
 
-  
-  if(F) {
+
+
+### For future runs ####
+if(F) {
     
     ### Try with subset of data ###
     
@@ -446,5 +449,4 @@ if(F) {
     round(pmatrix.msm(msm.sub05, t=10), 4)
     round(pmatrix.msm(msm.sub01, t=10), 4)
 
-  }
 }
