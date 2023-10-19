@@ -6,28 +6,39 @@
 library(here) # Load this here to manage paths
 
 ### Initialise ----
+
 source(here("R-scripts", "03-Analysis", "Msm.R"))
 
+args <- as.numeric(commandArgs(trailingOnly = TRUE))
+cat("Arguments passed:", args, "\n")
+
+
 ### Body ----
-S = 1 # Change scaling here
-methods <- c("CG", "nlm")
-covariates <- c('~ cov_Tmean', '~ cov_CMI', '~ cov_soil', 
-                '~ cov_CMI + cov_Tmean', '~ cov_Tmean + cov_soil',
-                '~ cov_CMI + cov_soil', '~ cov_CMI + cov_Tmean + cov_soil')
+S = 300000 # Change scaling here
+methods <- c("CG")
 
+covariates <- c('cov_Tmean', 'cov_soil', 'cov_CMI', 'cov_pert_class', 
+                'cov_pert_sev', 'cov_time_pert')
+cov.subset <- covariates[args]
 
-covariates <- c('~ cov_pert_class', '~ cov_time_pert', 
-                '~ cov_pert_class + cov_Tmean', '~ cov_pert_class + cov_time_pert',
-                '~ cov_pert_class + cov_time_pert + cov_Tmean')
+# Create list of all formulas to use
+covariate.formula <- character(0)
 
-covariates <- c('~ cov_Tmean')
-
-for(M in methods) {
-  for(C in covariates) {
-    run_remote_msm(data_msm = data_sc, qmatrix = Q.init, ctrl = S, md = M,
-                   cov = C,
-                   name.out.rds = paste0("msm4bM.", M,".sc", as.character(S), "_", 
-                                         gsub('[~ cov_]','', C), ".rds"))
+for (i in 1:length(cov.subset)) {
+  covariate_combinations <- combn(cov.subset, i, simplify = FALSE)
+  
+  for (combo in covariate_combinations) {
+    formula_str <- paste("~", paste(combo, collapse = " + "))
+    covariate.formula <- c(covariate.formula, formula_str)
   }
 }
 
+
+# Run model for each formula 
+for(C in covariate.formula) {
+  print(C)
+  run_remote_msm(data_msm = data_sc, qmatrix = Q.init, ctrl = S, md = methods,
+                 cov = C,
+                 name.out.rds = paste0("msm4bM.", M,".sc", as.character(S), "_", 
+                                       gsub("cov", "", gsub("[~ _]", "", C)), ".rds"))
+}

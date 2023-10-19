@@ -157,7 +157,6 @@ if(F) { # Check up on perturbations
 data4bM <- read_csv(here("Data", "BTE", "bte4bM_msm_ready.csv"),
                     col_types = cols(.default = col_guess(),
                                      sp_class = col_integer(),
-                                     cov_soil = col_factor(),
                                      cov_pert_class = col_factor(),
                                      cov_pert_sev = col_factor(),
                                      cov_time_pert = col_double())) %>% 
@@ -170,7 +169,8 @@ data_sc$cov_Tmean[is.na(data_sc$cov_Tmean)] <- mean(data_sc$cov_Tmean, na.rm =T)
 data_sc <- data_sc %>% 
   mutate(cov_CMI = (cov_CMI - mean(cov_CMI)) / sd(cov_CMI)) %>% 
   mutate(cov_Tmean = (cov_Tmean - mean(cov_Tmean)) / sd(cov_Tmean)) %>% 
-  mutate(cov_time_pert = cov_time_pert / 100)
+  mutate(cov_time_pert = cov_time_pert / 100) %>% 
+  mutate(cov_soil = cov_soil / 10)
 
 ### Functions ####
 
