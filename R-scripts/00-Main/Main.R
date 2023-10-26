@@ -7,10 +7,15 @@ library(here) # Load this here to manage paths
 
 ### Initialise ----
 
-source(here("R-scripts", "03-Analysis", "Msm.R"))
+if(length(args) == 0){
+  print("This script needs the zone and then the covariates values as integers!")
+  stop()
+}
 
-args <- as.numeric(commandArgs(trailingOnly = TRUE))
+args <- commandArgs(trailingOnly = TRUE)
 cat("Arguments passed:", args, "\n")
+
+source(here("R-scripts", "03-Analysis", "Msm.R"))
 
 
 ### Body ----
@@ -19,7 +24,14 @@ methods <- c("CG")
 
 covariates <- c('cov_Tmean', 'cov_soil', 'cov_CMI', 'cov_pert_class', 
                 'cov_pert_sev', 'cov_time_pert')
-cov.subset <- covariates[args]
+cov.subset <- covariates[as.numeric(commandArgs(trailingOnly = TRUE)[-1])]
+
+zone <- commandArgs(trailingOnly = TRUE)[1]
+
+cat("Selected zone:", zone, "\n")
+cat("Selected covariates:", cov.subset, "\n")
+
+
 
 # Create list of all formulas to use
 covariate.formula <- character(0)
@@ -32,13 +44,19 @@ for (i in 1:length(cov.subset)) {
     covariate.formula <- c(covariate.formula, formula_str)
   }
 }
+print(covariate.formula)
 
 
 # Run model for each formula 
 for(C in covariate.formula) {
   print(C)
-  run_remote_msm(data_msm = data_sc, qmatrix = Q.init, ctrl = S, md = methods,
-                 cov = C,
-                 name.out.rds = paste0("msm4bM.", M,".sc", as.character(S), "_", 
-                                       gsub("cov", "", gsub("[~ _]", "", C)), ".rds"))
+  file.out <- paste0("msm_", zone, ".", methods,".sc", as.character(S), "_", 
+         gsub("cov", "", gsub("[~ _]", "", C)), ".rds")
+  print(file.out)
+  
+  if(! file.exists(here("Data-Output", "msm", zone, file.out))) {
+    run_remote_msm(data_msm = data_sc, qmatrix = Q.init, ctrl = S, md = methods,
+                   cov = C, zone = zone,
+                   name.out.rds = file.out)
+  }
 }
