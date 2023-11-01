@@ -19,18 +19,19 @@ source(here("R-scripts", "03-Analysis", "Msm.R"))
 
 
 ### Body ----
-S = 300000 # Change scaling here
+zone <- commandArgs(trailingOnly = TRUE)[1]
+cat("Selected zone:", zone, "\n")
+cat("Selected covariates:", cov.subset, "\n")
+
+S <- ifelse(zone=="4bT" || zone=="4cT", 750000, 
+                  ifelse(zone=="4eT", 100000,
+                         ifelse(zone=="4fS", 200000,
+                                ifelse(zone=="4fT", 500000, 300000)))) # Change scaling here
 methods <- c("CG")
 
 covariates <- c('cov_Tmean', 'cov_soil', 'cov_CMI', 'cov_pert_class', 
                 'cov_pert_sev', 'cov_time_pert')
 cov.subset <- covariates[as.numeric(commandArgs(trailingOnly = TRUE)[-1])]
-
-zone <- commandArgs(trailingOnly = TRUE)[1]
-
-cat("Selected zone:", zone, "\n")
-cat("Selected covariates:", cov.subset, "\n")
-
 
 
 # Create list of all formulas to use
@@ -44,7 +45,6 @@ for (i in 1:length(cov.subset)) {
     covariate.formula <- c(covariate.formula, formula_str)
   }
 }
-print(covariate.formula)
 
 
 # Run model for each formula 

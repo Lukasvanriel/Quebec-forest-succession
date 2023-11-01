@@ -13,6 +13,7 @@ library(conflicted)
 
 conflicts_prefer(dplyr::filter)
 
+zone <- commandArgs(trailingOnly = TRUE)[1]
 ### Functions ####
 
 #Function to prepare dataset for msm
