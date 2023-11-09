@@ -211,20 +211,21 @@ plot.msm <- function(model, path=NA) {
 }
 
 #Function to easily run msm from the terminal; Catches errors and makes sure the script doesn't break down
-run_remote_msm <- function(data_msm, qmatrix, md = "BFGS", ctrl = 1, cov = "~ 1", zone=NA, name.out.rds) {
+run_remote_msm <- function(data_msm, qmatrix, md = "BFGS", ctrl = 1, convcrit = 1e-08,
+                           cov = "~ 1", zone=NA, name.out.rds) {
   if(! all(c("sp_class", "time", "TESSELLE") %in% colnames(data_msm))) {
     return("Missing information in data.")
   }
   
   if(md %in% c("BFGS", "CG", "Nelder-Mead", "SANN")) {
     msm.model <- tryCatch(msm( sp_class ~ time, subject=TESSELLE, data = data_msm,
-                               qmatrix = qmatrix, method= md, control = list(fnscale = ctrl),
+                               qmatrix = qmatrix, method= md, control = list(fnscale = ctrl, reltol = convcrit),
                                covariates = as.formula(cov)),
                           error = function(e) NA)
     
   } else if (md %in% c("nlm", "bobyqa", "fisher")){
     msm.model <- tryCatch(msm( sp_class ~ time, subject=TESSELLE, data = data_msm,
-                               qmatrix = qmatrix, opt.method= md, control = list(fnscale = ctrl),
+                               qmatrix = qmatrix, opt.method= md, control = list(fnscale = ctrl, reltol = convcrit),
                                covariates = as.formula(cov)),
                           error = function(e) NA)
   }
@@ -262,7 +263,8 @@ data <- read_csv(here("Data", "BTE", paste0("bte_", args[1], "_msm_ready.csv")),
                                      sp_class = col_integer(),
                                      cov_pert_class = col_factor(),
                                      cov_pert_sev = col_factor(),
-                                     cov_time_pert = col_double()))[,-1]# %>% select(-"...X")
+                                     cov_time_pert = col_double()))[,-1]
+
 
 # Rescale covariates where necessary. Add column classes
 data_sc <- data

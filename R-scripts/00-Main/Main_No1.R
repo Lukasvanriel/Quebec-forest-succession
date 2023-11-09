@@ -32,6 +32,7 @@ methods <- c("CG")
 covariates <- c('cov_Tmean', 'cov_soil', 'cov_CMI', 'cov_pert_class', 
                 'cov_pert_sev', 'cov_time_pert')
 cov.subset <- covariates[as.numeric(commandArgs(trailingOnly = TRUE)[-1])]
+
 cat("Selected covariates:", cov.subset, "\n")
 
 # Create list of all formulas to use
