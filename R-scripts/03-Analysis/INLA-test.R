@@ -18,7 +18,7 @@ data_msm_4b <- read.csv(here("Data", "BTE", "bte_msm_ready.csv"))[,-1] %>%
   filter(SREG_ECO %in% c("4bM", "4bS", "4bT"))
 
 plot(data_msm_4b$LONGI, data_msm_4b$LATIT)
-nrow(data_msm_4b) / nrow(data_msm)
+#nrow(data_msm_4b) / nrow(data_msm)
 
 ### Prepare dataset ###
 
@@ -134,15 +134,94 @@ fix_covariates <- function(df) {
 event.list.ext <- lapply(event.list, fix_covariates)
 
 
+
 ### Run INLA ###
 
+if(T) { # Individual 3-1 transition, cov=T
 inla.31.T <- joint(formSurv=list(inla.surv(event.list.ext[[31]]$time, event.list.ext[[31]]$status) ~ cov_Tmean),
                    basRisk = rep("weibullsurv", 1),
                    dataSurv = list(event.list.ext[[31]]))
 
 summary(inla.31.T)
-plot(inla.31.T)$Baseline
-plot(inla.31.T)$Outcomes
+#plot(inla.31.T)$Baseline
+#plot(inla.31.T)$Outcomes
 
 saveRDS(inla.31.T, here("Data-Output", "INLA", "31.T.rds"))
+}
 
+if(T) {# Each individual transition starting from 3, cov=T
+  inla.3.T <- vector("list", 8)
+  
+  inla.3.T <- lapply(c(31, 32, 34:39), function(x) {
+    print(x)
+    joint(formSurv= list(inla.surv(time, status) ~ cov_Tmean),
+          basRisk = rep("weibullsurv", 1),
+          dataSurv = list(event.list.ext[[x]]))})
+  
+  saveRDS(inla.3.T, here("Data-Output", "INLA", "3.T.rds"))
+  
+  for(i in 1:8) {summary(inla.3.T[[i]])}
+}
+
+if(F) {# Each individual transition starting from 3, cov=T,C,S
+  inla.3.T.C.S <- vector("list", 8)
+  
+  inla.3.T.C.S <- lapply(c(31, 32, 34:39), function(x) {
+    print(x)
+    joint(formSurv= list(inla.surv(time, status) ~ cov_Tmean + cov_CMI + cov_soil),
+          basRisk = rep("weibullsurv", 1),
+          dataSurv = list(event.list.ext[[x]]))})
+  
+  saveRDS(inla.3.T.C.S, here("Data-Output", "INLA", "3.T.C.S.rds"))
+  
+  for(i in 1:8) {summary(inla.3.T.C.S[[i]])}
+}
+
+if(F) {# Joint transitions starting from 3, cov=T
+  inla3.j.T <- joint(formSurv=list(inla.surv(event.list.ext[[31]]$time, event.list.ext[[31]]$status) ~ cov_Tmean,
+                                   inla.surv(event.list.ext[[32]]$time, event.list.ext[[32]]$status) ~ cov_Tmean,
+                                   inla.surv(event.list.ext[[34]]$time, event.list.ext[[34]]$status) ~ cov_Tmean,
+                                   inla.surv(event.list.ext[[35]]$time, event.list.ext[[35]]$status) ~ cov_Tmean,
+                                   inla.surv(event.list.ext[[36]]$time, event.list.ext[[36]]$status) ~ cov_Tmean,
+                                   inla.surv(event.list.ext[[37]]$time, event.list.ext[[37]]$status) ~ cov_Tmean,
+                                   inla.surv(event.list.ext[[38]]$time, event.list.ext[[38]]$status) ~ cov_Tmean,
+                                   inla.surv(event.list.ext[[39]]$time, event.list.ext[[39]]$status) ~ cov_Tmean),
+                     basRisk = rep("weibullsurv", 8),
+                     dataSurv = list(event.list.ext[[31]],
+                                     event.list.ext[[32]],
+                                     event.list.ext[[34]],
+                                     event.list.ext[[35]],
+                                     event.list.ext[[36]],
+                                     event.list.ext[[37]],
+                                     event.list.ext[[38]],
+                                     event.list.ext[[39]]))
+  
+  saveRDS(inla3.j.T, here("Data-Output", "INLA", "3j.T.rds"))
+  
+  
+  summary(inla3.j.T)
+}
+
+if(F) {# Joint transitions starting from 3, cov=T,C,S
+  inla3.j.T.C.S <- joint(formSurv=list(inla.surv(event.list.ext[[31]]$time, event.list.ext[[31]]$status) ~ cov_Tmean + cov_CMI + cov_soil,
+                                   inla.surv(event.list.ext[[32]]$time, event.list.ext[[32]]$status) ~ cov_Tmean + cov_CMI + cov_soil,
+                                   inla.surv(event.list.ext[[34]]$time, event.list.ext[[34]]$status) ~ cov_Tmean + cov_CMI + cov_soil,
+                                   inla.surv(event.list.ext[[35]]$time, event.list.ext[[35]]$status) ~ cov_Tmean + cov_CMI + cov_soil,
+                                   inla.surv(event.list.ext[[36]]$time, event.list.ext[[36]]$status) ~ cov_Tmean + cov_CMI + cov_soil,
+                                   inla.surv(event.list.ext[[37]]$time, event.list.ext[[37]]$status) ~ cov_Tmean + cov_CMI + cov_soil,
+                                   inla.surv(event.list.ext[[38]]$time, event.list.ext[[38]]$status) ~ cov_Tmean + cov_CMI + cov_soil,
+                                   inla.surv(event.list.ext[[39]]$time, event.list.ext[[39]]$status) ~ cov_Tmean + cov_CMI + cov_soil),
+                     basRisk = rep("weibullsurv", 8),
+                     dataSurv = list(event.list.ext[[31]],
+                                     event.list.ext[[32]],
+                                     event.list.ext[[34]],
+                                     event.list.ext[[35]],
+                                     event.list.ext[[36]],
+                                     event.list.ext[[37]],
+                                     event.list.ext[[38]],
+                                     event.list.ext[[39]]))
+  
+  saveRDS(inla3.j.T.C.S, here("Data-Output", "INLA", "3j.T.C.S.rds"))
+  
+  summary(inla3.j.T.C.S)
+}
