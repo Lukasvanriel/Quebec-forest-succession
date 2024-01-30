@@ -57,7 +57,7 @@ for(C in covariate.formula) {
   
   if(! file.exists(here("Data-Output", "msm", zone, file.out))) {
     run_remote_msm(data_msm = data_sc, qmatrix = Q.init, ctrl = S, md = methods,
-                   cov = C, zone = zone,
+                   cov = C, zone = zone, convcrit = 1e-16,
                    name.out.rds = file.out)
   }
 }

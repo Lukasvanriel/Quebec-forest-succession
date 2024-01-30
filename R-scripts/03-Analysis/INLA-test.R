@@ -58,9 +58,6 @@ data.inla <- data.inla.inter |>
   select(-sp_class) # |> ,-trans
 # filter(time != 0) #this used to be trans!=0 because I used to filter out the non-transitions
 
-data.inla.inter[1:14,]
-data.inla[1:10,]
-
 ### Run INLA ###
 
 ##State table:
@@ -148,10 +145,4 @@ plot(inla.31.T)$Baseline
 plot(inla.31.T)$Outcomes
 
 saveRDS(inla.31.T, here("Data-Output", "INLA", "31.T.rds"))
-
-a <- readRDS(here("Data-Output", "INLA", "31.T.rds"))
-
-summary(a)
-plot(a)$Baseline
-plot(a)$Outcomes
 
