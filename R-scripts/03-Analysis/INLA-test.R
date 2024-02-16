@@ -226,31 +226,6 @@ if(F) {# Joint transitions starting from 3, cov=T,C,S
   summary(inla3.j.T.C.S)
 }
 
-
-if(F) {# Joint transitions starting from 3, cov=T,C,S
-  inla3.j.T.C.S <- joint(formSurv=list(inla.surv(event.list.ext[[31]]$time, event.list.ext[[31]]$status) ~ cov_Tmean + cov_CMI + cov_soil,
-                                       inla.surv(event.list.ext[[32]]$time, event.list.ext[[32]]$status) ~ cov_Tmean + cov_CMI + cov_soil,
-                                       inla.surv(event.list.ext[[34]]$time, event.list.ext[[34]]$status) ~ cov_Tmean + cov_CMI + cov_soil,
-                                       inla.surv(event.list.ext[[35]]$time, event.list.ext[[35]]$status) ~ cov_Tmean + cov_CMI + cov_soil,
-                                       inla.surv(event.list.ext[[36]]$time, event.list.ext[[36]]$status) ~ cov_Tmean + cov_CMI + cov_soil,
-                                       inla.surv(event.list.ext[[37]]$time, event.list.ext[[37]]$status) ~ cov_Tmean + cov_CMI + cov_soil,
-                                       inla.surv(event.list.ext[[38]]$time, event.list.ext[[38]]$status) ~ cov_Tmean + cov_CMI + cov_soil,
-                                       inla.surv(event.list.ext[[39]]$time, event.list.ext[[39]]$status) ~ cov_Tmean + cov_CMI + cov_soil),
-                         basRisk = rep("weibullsurv", 8),
-                         dataSurv = list(event.list.ext[[31]],
-                                         event.list.ext[[32]],
-                                         event.list.ext[[34]],
-                                         event.list.ext[[35]],
-                                         event.list.ext[[36]],
-                                         event.list.ext[[37]],
-                                         event.list.ext[[38]],
-                                         event.list.ext[[39]]))
-  
-  saveRDS(inla3.j.T.C.S, here("Data-Output", "INLA", "3j.T.C.S.rds"))
-  
-  summary(inla3.j.T.C.S)
-}
-
 if(T) {# Joint transitions for all, cov=T,C,S
   inlaA.j.T.C.S <- joint(formSurv=list(inla.surv(event.list.ext[[12]]$time, event.list.ext[[12]]$status) ~ cov_Tmean + cov_CMI + cov_soil,
                                        inla.surv(event.list.ext[[13]]$time, event.list.ext[[13]]$status) ~ cov_Tmean + cov_CMI + cov_soil,
