@@ -6,7 +6,7 @@ library(here)
 
 ### Data ###
 
-inla.all <- readRDS(here("Data-Output", "INLA", "allj.T.C.rds"))
+inla.all <- readRDS(here("Data-Output", "INLA", "3j.T.C.S.rds"))
 
 ### ### 
 
@@ -25,3 +25,9 @@ for (i in seq_along(inla.all)) {
   
   cat("Element", element_name, "saved as", filename, "\n")
 }
+
+a <- inla.all$.args
+b <- inla.all$misc
+
+
+

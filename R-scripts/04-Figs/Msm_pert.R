@@ -16,7 +16,7 @@ library(RColorBrewer)
 conflicts_prefer(dplyr::filter)
 
 ### Data ####
-model <- readRDS(here("Data-Output", "msm","OLD", "msm4bM.CG.sc5e+05_pertlass+Tmean.rds"))
+model <- readRDS(here("Data-Output", "msm", "OLD", "msm4bM.CG.sc5e+05_pertlass+Tmean.rds"))
 
 ### Functions ####
 
@@ -40,14 +40,15 @@ plot_trans <- function(pmat, ci = NULL, cols = c("#FDF7F7", "red3", "#060000"),
   coordx <- seq(0, 1, len = n)
   coordy <- rev(coordx)
   axis(3, at = coordx, labels = states_lab, font = 2, las=2,
-       tick = FALSE, cex.axis = 3, line = -1, col.axis = "grey15")
+       tick = FALSE, cex.axis = 2.4, line = -1, col.axis = "grey15")
   axis(2, at = coordy, labels = states_lab, font = 2, 
-       tick = FALSE, cex.axis = 3, las = 1, line = -.8, col.axis = "grey15")
+       tick = FALSE, cex.axis = 2.4, las = 1, line = -.8, col.axis = "grey15")
   if(labels) {
     mtext("From", 2, font = 3, at = 1.0, las = 1, line = 1.5, cex = .8)
     mtext("To", 3, font = 3, at = -.05, line = 1.3, cex = .8)
   }
-  
+  #c(bottom, left, top, right)
+  par(mar = c(5, 11, 11, 2) + 0.1)
   # Main
   mtext(main, 3, line = 1.7, font = 1, cex = .85)
   ?image2
@@ -64,88 +65,30 @@ plot_trans <- function(pmat, ci = NULL, cols = c("#FDF7F7", "red3", "#060000"),
     }
   }
 }
-plot_trans <- function(pmat, ci = NULL, cols = c('#FDF7F7', 'red3', '#060000'),
-                       states_lab = NULL, labels = FALSE, main = NULL) {
-  col <- colorRampPalette(cols)(200)
-  if(!is.null(ci)) {
-    ci <- matrix(paste0('(', round(ci[,,1],2), ', ', round(ci[,,2],2), ')'), 4)
-  }
-  if(is.null(states_lab)) states_lab = colnames(pmat)
-  n <- nrow(pmat)
-  # Plot matrix
-  image2(pmat, col = col, border = 'white', lwd = 2)
-  # Axis labels
-  coordx <- seq(0, 1, len = n)
-  coordy <- rev(coordx)
-  axis(3, at = coordx, labels = states_lab, font = 2,
-       tick = FALSE, cex.axis = 5, line = -1, col.axis = 'grey15')
-  axis(2, at = coordy, labels = states_lab, font = 2,
-       tick = FALSE, cex.axis = 5, las = 1, line = -.8, col.axis = 'grey15')
-  if(labels) {
-    mtext('From', 2, font = 2, side=2,  las = 1, line = 1.5, cex = 4)#at = 1.2,
-    mtext('To', 3, font = 2, side=3, line = 1.3, cex = 4) #at = 0.95
-  }
-  ?mtext
-  # Main
-  mtext(main, 3, line = 1.7, font = 1, cex = .85)
-  # Probabilities
-  for(i in 1:n) {
-    if(is.null(ci)) {
-      text(x = coordx, y = coordy[i], labels = round(pmat[i,], 2),
-           col = ifelse(pmat[i,]<.5, 'black', 'white'), cex = 7, xpd = NA)
-    } else {
-      text(x = coordx, y = coordy[i]+.1, labels = round(pmat[i,], 2),
-           col = ifelse(pmat[i,]<.5, 'black', 'white'), cex = 7, xpd = NA)
-      text(x = coordx, y = coordy[i]-.2, labels = ci[i,],
-           col = ifelse(pmat[i,]<.5, 'black', 'white'), cex = .8, xpd = NA)
-    }
-  }
+
+plot_trans(p.base, labels=F, states_lab = 
+             c('Pap. Birch', 'Other intol.', 'Y. Birch', 'Maple', 'Other Dec.', 'Bals. Fir', 'B/R Spruce', 'Jack Pine' , 'Other Con.'))
+
+extract.colours <- function(c.df, p.matrix) {
+  pmat <- round(p.matrix, 2)
+  pmat <- sort(as.vector(pmat))
+  print(pmat)
+  
+  matching_indices <- match(pmat, c.df$val)
+  
+  # Step 3: Retrieve the corresponding colors from the "colours" column
+  matched_colors <- c.df$colours[matching_indices]
 }
 
-plot_trans <- function(pmat, ci = NULL, cols = c('#FDF7F7', 'red3', '#060000'),
-                       states_lab = NULL, labels = FALSE, main = NULL) {
-  col <- colorRampPalette(cols)(200)
-  if(!is.null(ci)) {
-    ci <- matrix(paste0('(', round(ci[,,1],2), ', ', round(ci[,,2],2), ')'), 4)
-  }
-  if(is.null(states_lab)) states_lab = colnames(pmat)
-  n <- nrow(pmat)
-  # Plot matrix
-  image2(pmat, col = col, border = 'white', lwd = 2)
-  # Axis labels
-  coordx <- seq(0, 1, len = n)
-  coordy <- rev(coordx)
-  axis(3, at = coordx, labels = states_lab, font = 2,
-       tick = FALSE, cex.axis = 5, line = -1, col.axis = 'grey15')
-  axis(2, at = coordy, labels = states_lab, font = 2,
-       tick = FALSE, cex.axis = 5, las = 1, line = -.8, col.axis = 'grey15')
-  if(labels) {
-    mtext('From', 2, font = 2, side=2,  las = 1, line = 1.5, cex = 4)#at = 1.2,
-    mtext('To', 3, font = 2, side=3, line = 1.3, cex = 4) #at = 0.95
-  }
-  ?mtext
-  # Main
-  mtext(main, 3, line = 1.7, font = 1, cex = .85)
-  # Probabilities
-  for(i in 1:n) {
-    if(is.null(ci)) {
-      text(x = coordx, y = coordy[i], labels = round(pmat[i,], 2),
-           col = ifelse(pmat[i,]<.5, 'black', 'white'), cex = 7, xpd = NA)
-    } else {
-      text(x = coordx, y = coordy[i]+.1, labels = round(pmat[i,], 2),
-           col = ifelse(pmat[i,]<.5, 'black', 'white'), cex = 7, xpd = NA)
-      text(x = coordx, y = coordy[i]-.2, labels = ci[i,],
-           col = ifelse(pmat[i,]<.5, 'black', 'white'), cex = .8, xpd = NA)
-    }
-  }
-}
+
+colours.df <- data.frame(val=(seq(1,33)-17)/100, colours=colorRampPalette(c("blue", "white", "red3"))(33))
 
 plot_trans_diff <- function(pmat, ci = NULL, cols = c("lightblue", "white", "red3"), 
                             states_lab = NULL, labels = FALSE, main = NULL) {
   col <- colorRampPalette(cols)(100)
   
-  col <- cols
-  
+  #col <- cols
+
   if(!is.null(ci)) {
     ci <- matrix(paste0("(", round(ci[,,1],2), ", ", round(ci[,,2],2), ")"), 4)
   }
@@ -155,15 +98,15 @@ plot_trans_diff <- function(pmat, ci = NULL, cols = c("lightblue", "white", "red
   n <- nrow(pmat)
   
   # Plot matrix
-  image2(pmat, col = col, border = "white", lwd = 2)
-  
+  image2(pmat, col  = col, border = "white", lwd = 2)
+
   # Axis labels
   coordx <- seq(0, 1, len = n)
   coordy <- rev(coordx)
   axis(3, at = coordx, labels = states_lab, font = 2, las=2,
-       tick = FALSE, cex.axis = 3, line = -1, col.axis = "grey15")
+       tick = FALSE, cex.axis = 2.4, line = -1, col.axis = "grey15")
   axis(2, at = coordy, labels = states_lab, font = 2, 
-       tick = FALSE, cex.axis = 3, las = 1, line = -.8, col.axis = "grey15")
+       tick = FALSE, cex.axis = 2.4, las = 1, line = -.8, col.axis = "grey15")
   if(labels) {
     mtext("From", 2, font = 3, at = 1.0, las = 1, line = 1.5, cex = 2.8)
     mtext("To", 3, font = 3, at = -.05, line = 1.3, cex = 2.8)
@@ -185,6 +128,23 @@ plot_trans_diff <- function(pmat, ci = NULL, cols = c("lightblue", "white", "red
     }
   }
 }
+sort(as.vector(round(p.fire-p.base,2)))
+
+plot_trans_diff(p.fire-p.base, labels=F, cols=extract.colours(colours.df, p.fire-p.base), states_lab =
+                  c('Pap. Birch', 'Other intol.', 'Y. Birch', 'Maple', 'Other Dec.', 'Bals. Fir', 'B/R Spruce', 'Jack Pine' , 'Other Con.'))
+
+plot_trans_diff(p.fire-p.base, labels=F, states_lab =
+                  c('Pap. Birch', 'Other intol.', 'Y. Birch', 'Maple', 'Other Dec.', 'Bals. Fir', 'B/R Spruce', 'Jack Pine' , 'Other Con.'))
+
+plot_trans_diff(p.harv-p.base, labels=F, col=extract.colours(colours.df, p.harv-p.base),
+                states_lab = c('Pap. Birch', 'Other intol.', 'Y. Birch', 'Maple', 'Other Dec.', 'Bals. Fir', 'B/R Spruce', 'Jack Pine' , 'Other Con.'))
+
+plot_trans_diff(p.outb-p.base, labels=F, col=extract.colours(colours.df, p.outb-p.base),
+                states_lab = c('Pap. Birch', 'Other intol.', 'Y. Birch', 'Maple', 'Other Dec.', 'Bals. Fir', 'B/R Spruce', 'Jack Pine' , 'Other Con.'))
+
+t <- round(p.fire-p.base,2)
+plot.matrix(t)
+
 
 plot_pmatrix <- function(mod, t = 1:40, covar = "mean", ci = "none", 
                          st_col = c("#158282", "#A1BD93","#FEAC19", "#D43650"),
@@ -283,12 +243,111 @@ plot_trans_timelapse <- function(from, to, t=50, p=c("p.b", "p.f", "p.h", "p.o")
 
 #### Analysis ------
 
+#### TEST stuff -------
+data.bte <- read.csv(here("Data", "BTE", "bte_msm_ready.csv")) %>% 
+  select(-X)
+
+data.4bM <- read.csv(here("Data", "BTE", paste0("bte_", "4bM", "_msm_ready.csv")))
+data.4bS <- read.csv(here("Data", "BTE", paste0("bte_", "4bS", "_msm_ready.csv")))
+data.4bT <- read.csv(here("Data", "BTE", paste0("bte_", "4bT", "_msm_ready.csv")))
+
+m.4bM.pcl <- readRDS(here("Data-Output", "msm", "4bM", "msm_4bM.CG.sc3e+05_pertclass.rds"))
+m.4bM.T <- readRDS(here("Data-Output", "msm", "4bM", "msm_4bM.CG.sc3e+05_Tmean.rds"))
+m.4bM.s <- readRDS(here("Data-Output", "msm", "4bM", "msm_4bM.CG.sc3e+05_Soil.rds"))
+m.4bM.combo <- readRDS(here("Data-Output", "msm", "OLD", "msm4bM.CG.sc5e+05_pertlass+Tmean.rds"))
+m.4bM.T.no1 <- readRDS("~/Desktop/msm_4bM_NO1.CG.sc3e+05_Tmean.rds")
+m.4bM.T.no1_conv <- readRDS("~/Desktop/msm_4bM_NO1.CG.sc3e+05_Tmean_e-16.rds")
+
+round(m.4bM.T.no1_conv$Qmatrices$baseline,4)
+round(m.4bM.T.no1$Qmatrices$baseline,4)
+round(m.4bM.T$Qmatrices$baseline,4)
+round(pmatrix.msm(m.4bM.T.no1, t=10),4)
+round(pmatrix.msm(m.4bM.T, t=10),4)
+
+m.4bS.s <- readRDS(here("Data-Output", "msm", "4bS", "msm_4bS.CG.sc3e+05_Soil.rds"))
+m.4bT.s <- readRDS(here("Data-Output", "msm", "4bT", "msm_4bT.CG.sc3e+05_Soil.rds"))
+
+hist(data.4bT$cov_soil)
+
+## Which zones to compare for proposal?
+plot(data.bte$LONGI, data.bte$LATIT, pch=19)
+points(data.4bM$LONGI, data.4bM$LATIT, pch=19, col="red")
+points(data.4bS$LONGI, data.4bS$LATIT, pch=19, col="blue")
+points(data.4bT$LONGI, data.4bT$LATIT, pch=19, col="green")
+
+## Check out models
+round(m.4bM.pcl$Qmatrices$baseline,3)
+round(m.4bM.T$Qmatrices$baseline,3)
+round(m.4bM.s$Qmatrices$baseline,3)
+round(m.4bM.combo$Qmatrices$baseline,3)
+
+round(pmatrix.msm(m.4bM.pcl, t=10),3)
+round(pmatrix.msm(m.4bM.T, t=10),3)
+round(pmatrix.msm(m.4bM.s, t=10),3)
+
+qmatrix.msm(m.4bM.pcl)
+sojourn.msm(m.4bM.pcl)
+pnext.msm(m.4bM.pcl)
+
+# 
+round(m.4bM.T$Qmatrices$baseline,3)
+round(m.4bM.T$Qmatrices$logbaseline,3) #just the log of the baseline matrix
+round(m.4bM.T$Qmatrices$cov_Tmean,3)
+
+round(pmatrix.msm(m.4bM.T, t=10, covariates = list(cov_Tmean=0)),4)
+round(pmatrix.msm(m.4bM.T, t=10, covariates = list(cov_Tmean=2)),4)
+round(pmatrix.msm(m.4bM.T, t=10, covariates = list(cov_Tmean=-2)),4)
+
+round(pmatrix.msm(m.4bM.T, t=10, covariates = list(cov_Tmean=0)),4)
+
+#Soil for three zones:
+
+round(m.4bM.s$Qmatrices$cov_soil,3)
+round(m.4bS.s$Qmatrices$cov_soil,3)
+round(m.4bT.s$Qmatrices$cov_soil,3)
+
+round(pmatrix.msm(m.4bM.s, t=10),4)
+round(pmatrix.msm(m.4bS.s, t=10),4)
+round(pmatrix.msm(m.4bT.s, t=10),4)
+
+m.4bT.s$opt$hessian
+
+list.files("~/Desktop/4bM", pattern = "\\.rds$")
+list.files("~/Desktop/4bM")
+folders <- Sys.glob("/Users/lukas/Desktop/RProjects/Quebec-forest-succession/Data-Output/msm/4*")
+files <- Sys.glob("~/Desktop/4bT/msm*.rds")
+
+
+
+for(fo in folders) {
+  files <- Sys.glob(Sys.glob(paste0(fo,"/", "msm*.rds")))
+  for(f in files) {
+    print(f)
+    print(readRDS(f))
+    print("--------------------------------------------")
+  }
+}
+
+
+a <- readRDS("~/Desktop/4bT/msm_4bT.CG.sc750000_soil.rds")
+b <- readRDS("~/Desktop/4bT/msm_4bT.CG.sc3e+05_soil.rds")
+
+round(a$Qmatrices$baseline, 4)
+round(b$Qmatrices$baseline, 4)
+
+round(pmatrix.msm(a, t=10), 4)
+round(pmatrix.msm(b, t=10), 4)
+
+##POSTER##----
+
 #summary(model)
 #Used: Tmean + perturb.class: 0=no, 1=burn, 2=cut, 3=outbreak
 
 round(model$Qmatrices$baseline,3)
 round(model$Qmatrices$cov_pert_class1,3)
 round(model$Qmatrices$baseline,3) + round(model$Qmatrices$cov_pert_class1,3)
+
+
 
 q.baseline <- round(qmatrix.msm(model)$estimates, 5)
 
@@ -323,10 +382,46 @@ ggplot(df) +
   theme_minimal()
   
 p.av <- round(pmatrix.msm(model, t=10), 5)
+
 p.base <- round(pmatrix.msm(model, t=10, covariates = list(cov_pert_class=0)), 5)
 p.fire <- round(pmatrix.msm(model, t=10, covariates = list(cov_pert_class=1)), 5)
 p.harv <- round(pmatrix.msm(model, t=10, covariates = list(cov_pert_class=2)), 5)
 p.outb <- round(pmatrix.msm(model, t=10, covariates = list(cov_pert_class=3)), 5)
+
+write.csv(p.base, "~/Desktop/pbase_10yr.csv", row.names = F)
+write.csv(p.fire, "~/Desktop/pfire_10yr.csv", row.names = F)
+write.csv(p.harv, "~/Desktop/pharv_10yr.csv", row.names = F)
+write.csv(p.outb, "~/Desktop/poutb_10yr.csv", row.names = F)
+
+write.csv(round(p.fire - p.base, 5), "~/Desktop/delta_pfire_10yr.csv", row.names = F)
+write.csv(round(p.harv - p.base, 5), "~/Desktop/delta_pharv_10yr.csv", row.names = F)
+write.csv(round(p.outb - p.base, 5), "~/Desktop/delta_poutb_10yr.csv", row.names = F)
+
+p.av <- round(pmatrix.msm(model, t=10), 5)
+p.base <- round(pmatrix.msm(model, t=10, covariates = list(cov_pert_class=0)), 5)
+
+p.Tbase <- round(pmatrix.msm(model, t=10, covariates = list(cov_Tmean=0)), 5)
+
+p.T1 <- round(pmatrix.msm(model, t=10, covariates = list(cov_Tmean=1)), 5)
+p.Tmin1 <- round(pmatrix.msm(model, t=10, covariates = list(cov_Tmean=-1)), 5)
+
+p.T3 <- round(pmatrix.msm(model, t=10, covariates = list(cov_Tmean=3)), 5)
+p.Tmin3 <- round(pmatrix.msm(model, t=10, covariates = list(cov_Tmean=-3)), 5)
+
+write.csv(p.Tbase, "~/Desktop/pTbase_10yr.csv", row.names = F)
+
+write.csv(p.T1, "~/Desktop/pT1_10yr.csv", row.names = F)
+write.csv(p.Tmin1, "~/Desktop/pT-1_10yr.csv", row.names = F)
+
+write.csv(p.T3, "~/Desktop/pT3_10yr.csv", row.names = F)
+write.csv(p.Tmin3, "~/Desktop/pT-3_10yr.csv", row.names = F)
+
+write.csv(round(p.T1 - p.Tbase, 5), "~/Desktop/delta_T1_10yr.csv", row.names = F)
+write.csv(round(p.Tmin1 - p.Tbase, 5), "~/Desktop/delta_T-1_10yr.csv", row.names = F)
+
+write.csv(round(p.T3 - p.Tbase, 5), "~/Desktop/delta_T3_10yr.csv", row.names = F)
+write.csv(round(p.Tmin3 - p.Tbase, 5), "~/Desktop/delta_T-3_10yr.csv", row.names = F)
+
 
 heatmap(p.base)
 heatmap(p.harv)
@@ -410,6 +505,8 @@ max(c(p.base-p.fire, p.base-p.harv, p.base-p.outb))
 min(c(p.base-p.fire, p.base-p.harv, p.base-p.outb))
 
 colours.df <- data.frame(val=seq(-0.16, 0.16, by=0.01), colours=colorRampPalette(c("blue", "white", "red3"))(33))
+
+
 
 extract.colours <- function(c.df, p.matrix) {
   c.df %>% 
@@ -574,7 +671,7 @@ legend('bottom',legend = c("None", "Fire", "Harvest", "Outbreak"), col = c("blac
 
 dev.off()
 
-
+create_trans_timelapse(1,2, t=50)
 
 #### Good version I think?
 

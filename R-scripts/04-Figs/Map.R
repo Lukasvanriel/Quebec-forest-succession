@@ -6,8 +6,6 @@ library(RColorBrewer)
 library(scales)
 library(graphicsutils)
 
-#install.packages("graphicsutils")
-
 ### DATA ####
 st_layers("CLASSI_ECO_QC_GDB/CLASSI_ECO_QC.gdb")
 
@@ -82,8 +80,8 @@ legend(5028315, 337070, legend=c("Current", "Next: Boreal-temperate ecotone", "F
 
 
 
-
-### GET NORTH AMERICA ####
+### MH --------
+### GET NORTH AMERICA 
 
 # get canada boundary map
 can <- gadm("CAN", level = 1, resolution = 2, path = "/Users/mariehbrice/Documents/GitHub/classfication_ecologique_qc/carte_ERR/")
@@ -146,7 +144,7 @@ grat <- st_graticule(bb, crs = 32188, lon = seq(-100,-50, by = 5))
 grat_x <- grat[grat$type == "E",]
 grat_y <- grat[grat$type == "N",]
 
-### Cartes de la région ####
+### Cartes de la région 
 
 png("carte_region.png", width = 5.8, height = 5.5, res = 400, units = "in")
 
