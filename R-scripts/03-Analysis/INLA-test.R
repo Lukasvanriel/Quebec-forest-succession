@@ -316,7 +316,7 @@ if(F) {# Joint transitions for all, cov=T,C,S
   summary(inlaA.j.T.C.S)
 }
 
-if(T) {# Joint transitions for all, cov=T,C,Ptype
+if(F) {# Joint transitions for all, cov=T,C,Ptype
   for(i in 1:length(event.list)) {
     if(! is.null(event.list[[i]])){event.list[[i]]$cov_pert_class <- as.factor(event.list[[i]]$cov_pert_class)}
     if(! is.null(event.list.ext[[i]])){event.list.ext[[i]]$cov_pert_class <- as.factor(event.list.ext[[i]]$cov_pert_class)}
@@ -403,7 +403,8 @@ if(T) {# Joint transitions for all, cov=T,C,Ptype
                                          event.list.ext[[61]], event.list.ext[[62]], event.list.ext[[63]], event.list.ext[[64]], event.list.ext[[65]], event.list.ext[[67]], event.list.ext[[68]], event.list.ext[[69]],
                                          event.list.ext[[71]], event.list.ext[[72]], event.list.ext[[73]], event.list.ext[[74]], event.list.ext[[75]], event.list.ext[[76]], event.list.ext[[78]], event.list.ext[[79]],
                                          event.list.ext[[81]], event.list.ext[[82]], event.list.ext[[83]], event.list.ext[[84]], event.list.ext[[85]], event.list.ext[[86]], event.list.ext[[87]], event.list.ext[[89]],
-                                         event.list.ext[[91]], event.list.ext[[92]], event.list.ext[[93]], event.list.ext[[94]], event.list.ext[[95]], event.list.ext[[96]], event.list.ext[[97]], event.list.ext[[98]]))
+                                         event.list.ext[[91]], event.list.ext[[92]], event.list.ext[[93]], event.list.ext[[94]], event.list.ext[[95]], event.list.ext[[96]], event.list.ext[[97]], event.list.ext[[98]]),
+                         control = list(int.strategy = "eb", priorAssoc = list(mean=2, prec=0.01)))
   
   saveRDS(inlaA.j.T.C.Pc, here("Data-Output", "INLA", "allj.T.C.Pc.rds"))
   
@@ -497,7 +498,8 @@ if(T) {# Joint transitions for all, cov=T,Ptype
                                          event.list.ext[[61]], event.list.ext[[62]], event.list.ext[[63]], event.list.ext[[64]], event.list.ext[[65]], event.list.ext[[67]], event.list.ext[[68]], event.list.ext[[69]],
                                          event.list.ext[[71]], event.list.ext[[72]], event.list.ext[[73]], event.list.ext[[74]], event.list.ext[[75]], event.list.ext[[76]], event.list.ext[[78]], event.list.ext[[79]],
                                          event.list.ext[[81]], event.list.ext[[82]], event.list.ext[[83]], event.list.ext[[84]], event.list.ext[[85]], event.list.ext[[86]], event.list.ext[[87]], event.list.ext[[89]],
-                                         event.list.ext[[91]], event.list.ext[[92]], event.list.ext[[93]], event.list.ext[[94]], event.list.ext[[95]], event.list.ext[[96]], event.list.ext[[97]], event.list.ext[[98]]))
+                                         event.list.ext[[91]], event.list.ext[[92]], event.list.ext[[93]], event.list.ext[[94]], event.list.ext[[95]], event.list.ext[[96]], event.list.ext[[97]], event.list.ext[[98]]),
+                        control = list(int.strategy = "eb", priorAssoc = list(mean=2, prec=0.01)))
   
   saveRDS(inlaA.j.T.Pc, here("Data-Output", "INLA", "allj.T.Pc.rds"))
   
