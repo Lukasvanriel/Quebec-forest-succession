@@ -17,7 +17,7 @@ data_msm <- read.csv(here("Data", "BTE", "bte_msm_ready.csv"))[,-1]
 data_msm_4b <- read.csv(here("Data", "BTE", "bte_msm_ready.csv"))[,-1] %>% 
   filter(SREG_ECO %in% c("4bM", "4bS", "4bT"))
 
-plot(data_msm_4b$LONGI, data_msm_4b$LATIT)
+#plot(data_msm_4b$LONGI, data_msm_4b$LATIT)
 #nrow(data_msm_4b) / nrow(data_msm)
 
 ### Prepare dataset ###
@@ -225,8 +225,9 @@ if(F) {# Joint transitions starting from 3, cov=T,C,S
   
   summary(inla3.j.T.C.S)
 }
+class(event.list[[21]]$cov_pert_class)
 
-if(T) {# Joint transitions for all, cov=T,C,S
+if(F) {# Joint transitions for all, cov=T,C,S
   inlaA.j.T.C.S <- joint(formSurv=list(inla.surv(event.list.ext[[12]]$time, event.list.ext[[12]]$status) ~ cov_Tmean + cov_CMI + cov_soil,
                                        inla.surv(event.list.ext[[13]]$time, event.list.ext[[13]]$status) ~ cov_Tmean + cov_CMI + cov_soil,
                                        inla.surv(event.list.ext[[14]]$time, event.list.ext[[14]]$status) ~ cov_Tmean + cov_CMI + cov_soil,
@@ -313,4 +314,192 @@ if(T) {# Joint transitions for all, cov=T,C,S
   saveRDS(inlaA.j.T.C.S, here("Data-Output", "INLA", "allj.T.C.S.rds"))
   
   summary(inlaA.j.T.C.S)
+}
+
+if(T) {# Joint transitions for all, cov=T,C,Ptype
+  for(i in 1:length(event.list)) {
+    if(! is.null(event.list[[i]])){event.list[[i]]$cov_pert_class <- as.factor(event.list[[i]]$cov_pert_class)}
+    if(! is.null(event.list.ext[[i]])){event.list.ext[[i]]$cov_pert_class <- as.factor(event.list.ext[[i]]$cov_pert_class)}
+  }
+  
+  inlaA.j.T.C.Pc <- joint(formSurv=list(inla.surv(event.list.ext[[12]]$time, event.list.ext[[12]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[13]]$time, event.list.ext[[13]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[14]]$time, event.list.ext[[14]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[15]]$time, event.list.ext[[15]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[16]]$time, event.list.ext[[16]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[17]]$time, event.list.ext[[17]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[18]]$time, event.list.ext[[18]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[19]]$time, event.list.ext[[19]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[21]]$time, event.list.ext[[21]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[23]]$time, event.list.ext[[23]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[24]]$time, event.list.ext[[24]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[25]]$time, event.list.ext[[25]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[26]]$time, event.list.ext[[26]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[27]]$time, event.list.ext[[27]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[28]]$time, event.list.ext[[28]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[29]]$time, event.list.ext[[29]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[31]]$time, event.list.ext[[31]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[32]]$time, event.list.ext[[32]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[34]]$time, event.list.ext[[34]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[35]]$time, event.list.ext[[35]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[36]]$time, event.list.ext[[36]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[37]]$time, event.list.ext[[37]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[38]]$time, event.list.ext[[38]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[39]]$time, event.list.ext[[39]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[41]]$time, event.list.ext[[41]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[42]]$time, event.list.ext[[42]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[43]]$time, event.list.ext[[43]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[45]]$time, event.list.ext[[45]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[46]]$time, event.list.ext[[46]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[47]]$time, event.list.ext[[47]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[48]]$time, event.list.ext[[48]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[49]]$time, event.list.ext[[49]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[51]]$time, event.list.ext[[51]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[52]]$time, event.list.ext[[52]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[53]]$time, event.list.ext[[53]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[54]]$time, event.list.ext[[54]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[56]]$time, event.list.ext[[56]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[57]]$time, event.list.ext[[57]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[58]]$time, event.list.ext[[58]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[59]]$time, event.list.ext[[59]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[61]]$time, event.list.ext[[61]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[62]]$time, event.list.ext[[62]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[63]]$time, event.list.ext[[63]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[64]]$time, event.list.ext[[64]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[65]]$time, event.list.ext[[65]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[67]]$time, event.list.ext[[67]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[68]]$time, event.list.ext[[68]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[69]]$time, event.list.ext[[69]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[71]]$time, event.list.ext[[71]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[72]]$time, event.list.ext[[72]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[73]]$time, event.list.ext[[73]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[74]]$time, event.list.ext[[74]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[75]]$time, event.list.ext[[75]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[76]]$time, event.list.ext[[76]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[78]]$time, event.list.ext[[78]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[79]]$time, event.list.ext[[79]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[81]]$time, event.list.ext[[81]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[82]]$time, event.list.ext[[82]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[83]]$time, event.list.ext[[83]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[84]]$time, event.list.ext[[84]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[85]]$time, event.list.ext[[85]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[86]]$time, event.list.ext[[86]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[87]]$time, event.list.ext[[87]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[89]]$time, event.list.ext[[89]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[91]]$time, event.list.ext[[91]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[92]]$time, event.list.ext[[92]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[93]]$time, event.list.ext[[93]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[94]]$time, event.list.ext[[94]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[95]]$time, event.list.ext[[95]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[96]]$time, event.list.ext[[96]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[97]]$time, event.list.ext[[97]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class,
+                                       inla.surv(event.list.ext[[98]]$time, event.list.ext[[98]]$status) ~ cov_Tmean + cov_CMI + cov_pert_class),
+                         basRisk = rep("weibullsurv", 72),
+                         dataSurv = list(event.list.ext[[12]], event.list.ext[[13]], event.list.ext[[14]], event.list.ext[[15]], event.list.ext[[16]], event.list.ext[[17]], event.list.ext[[18]], event.list.ext[[19]],
+                                         event.list.ext[[21]], event.list.ext[[23]], event.list.ext[[24]], event.list.ext[[25]], event.list.ext[[26]], event.list.ext[[27]], event.list.ext[[28]], event.list.ext[[29]],
+                                         event.list.ext[[31]], event.list.ext[[32]], event.list.ext[[34]], event.list.ext[[35]], event.list.ext[[36]], event.list.ext[[37]], event.list.ext[[38]], event.list.ext[[39]],
+                                         event.list.ext[[41]], event.list.ext[[42]], event.list.ext[[43]], event.list.ext[[45]], event.list.ext[[46]], event.list.ext[[47]], event.list.ext[[48]], event.list.ext[[49]],
+                                         event.list.ext[[51]], event.list.ext[[52]], event.list.ext[[53]], event.list.ext[[54]], event.list.ext[[56]], event.list.ext[[57]], event.list.ext[[58]], event.list.ext[[59]],
+                                         event.list.ext[[61]], event.list.ext[[62]], event.list.ext[[63]], event.list.ext[[64]], event.list.ext[[65]], event.list.ext[[67]], event.list.ext[[68]], event.list.ext[[69]],
+                                         event.list.ext[[71]], event.list.ext[[72]], event.list.ext[[73]], event.list.ext[[74]], event.list.ext[[75]], event.list.ext[[76]], event.list.ext[[78]], event.list.ext[[79]],
+                                         event.list.ext[[81]], event.list.ext[[82]], event.list.ext[[83]], event.list.ext[[84]], event.list.ext[[85]], event.list.ext[[86]], event.list.ext[[87]], event.list.ext[[89]],
+                                         event.list.ext[[91]], event.list.ext[[92]], event.list.ext[[93]], event.list.ext[[94]], event.list.ext[[95]], event.list.ext[[96]], event.list.ext[[97]], event.list.ext[[98]]))
+  
+  saveRDS(inlaA.j.T.C.Pc, here("Data-Output", "INLA", "allj.T.C.Pc.rds"))
+  
+  summary(inlaA.j.T.C.Pc)
+}
+
+if(T) {# Joint transitions for all, cov=T,Ptype
+  for(i in 1:length(event.list)) {
+    if(! is.null(event.list[[i]])){event.list[[i]]$cov_pert_class <- as.factor(event.list[[i]]$cov_pert_class)}
+    if(! is.null(event.list.ext[[i]])){event.list.ext[[i]]$cov_pert_class <- as.factor(event.list.ext[[i]]$cov_pert_class)}
+  }
+  
+  inlaA.j.T.Pc <- joint(formSurv=list(inla.surv(event.list.ext[[12]]$time, event.list.ext[[12]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[13]]$time, event.list.ext[[13]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[14]]$time, event.list.ext[[14]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[15]]$time, event.list.ext[[15]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[16]]$time, event.list.ext[[16]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[17]]$time, event.list.ext[[17]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[18]]$time, event.list.ext[[18]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[19]]$time, event.list.ext[[19]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[21]]$time, event.list.ext[[21]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[23]]$time, event.list.ext[[23]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[24]]$time, event.list.ext[[24]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[25]]$time, event.list.ext[[25]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[26]]$time, event.list.ext[[26]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[27]]$time, event.list.ext[[27]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[28]]$time, event.list.ext[[28]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[29]]$time, event.list.ext[[29]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[31]]$time, event.list.ext[[31]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[32]]$time, event.list.ext[[32]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[34]]$time, event.list.ext[[34]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[35]]$time, event.list.ext[[35]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[36]]$time, event.list.ext[[36]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[37]]$time, event.list.ext[[37]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[38]]$time, event.list.ext[[38]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[39]]$time, event.list.ext[[39]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[41]]$time, event.list.ext[[41]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[42]]$time, event.list.ext[[42]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[43]]$time, event.list.ext[[43]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[45]]$time, event.list.ext[[45]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[46]]$time, event.list.ext[[46]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[47]]$time, event.list.ext[[47]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[48]]$time, event.list.ext[[48]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[49]]$time, event.list.ext[[49]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[51]]$time, event.list.ext[[51]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[52]]$time, event.list.ext[[52]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[53]]$time, event.list.ext[[53]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[54]]$time, event.list.ext[[54]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[56]]$time, event.list.ext[[56]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[57]]$time, event.list.ext[[57]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[58]]$time, event.list.ext[[58]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[59]]$time, event.list.ext[[59]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[61]]$time, event.list.ext[[61]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[62]]$time, event.list.ext[[62]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[63]]$time, event.list.ext[[63]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[64]]$time, event.list.ext[[64]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[65]]$time, event.list.ext[[65]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[67]]$time, event.list.ext[[67]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[68]]$time, event.list.ext[[68]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[69]]$time, event.list.ext[[69]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[71]]$time, event.list.ext[[71]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[72]]$time, event.list.ext[[72]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[73]]$time, event.list.ext[[73]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[74]]$time, event.list.ext[[74]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[75]]$time, event.list.ext[[75]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[76]]$time, event.list.ext[[76]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[78]]$time, event.list.ext[[78]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[79]]$time, event.list.ext[[79]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[81]]$time, event.list.ext[[81]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[82]]$time, event.list.ext[[82]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[83]]$time, event.list.ext[[83]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[84]]$time, event.list.ext[[84]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[85]]$time, event.list.ext[[85]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[86]]$time, event.list.ext[[86]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[87]]$time, event.list.ext[[87]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[89]]$time, event.list.ext[[89]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[91]]$time, event.list.ext[[91]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[92]]$time, event.list.ext[[92]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[93]]$time, event.list.ext[[93]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[94]]$time, event.list.ext[[94]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[95]]$time, event.list.ext[[95]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[96]]$time, event.list.ext[[96]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[97]]$time, event.list.ext[[97]]$status) ~ cov_Tmean + cov_pert_class,
+                                       inla.surv(event.list.ext[[98]]$time, event.list.ext[[98]]$status) ~ cov_Tmean + cov_pert_class),
+                         basRisk = rep("weibullsurv", 72),
+                         dataSurv = list(event.list.ext[[12]], event.list.ext[[13]], event.list.ext[[14]], event.list.ext[[15]], event.list.ext[[16]], event.list.ext[[17]], event.list.ext[[18]], event.list.ext[[19]],
+                                         event.list.ext[[21]], event.list.ext[[23]], event.list.ext[[24]], event.list.ext[[25]], event.list.ext[[26]], event.list.ext[[27]], event.list.ext[[28]], event.list.ext[[29]],
+                                         event.list.ext[[31]], event.list.ext[[32]], event.list.ext[[34]], event.list.ext[[35]], event.list.ext[[36]], event.list.ext[[37]], event.list.ext[[38]], event.list.ext[[39]],
+                                         event.list.ext[[41]], event.list.ext[[42]], event.list.ext[[43]], event.list.ext[[45]], event.list.ext[[46]], event.list.ext[[47]], event.list.ext[[48]], event.list.ext[[49]],
+                                         event.list.ext[[51]], event.list.ext[[52]], event.list.ext[[53]], event.list.ext[[54]], event.list.ext[[56]], event.list.ext[[57]], event.list.ext[[58]], event.list.ext[[59]],
+                                         event.list.ext[[61]], event.list.ext[[62]], event.list.ext[[63]], event.list.ext[[64]], event.list.ext[[65]], event.list.ext[[67]], event.list.ext[[68]], event.list.ext[[69]],
+                                         event.list.ext[[71]], event.list.ext[[72]], event.list.ext[[73]], event.list.ext[[74]], event.list.ext[[75]], event.list.ext[[76]], event.list.ext[[78]], event.list.ext[[79]],
+                                         event.list.ext[[81]], event.list.ext[[82]], event.list.ext[[83]], event.list.ext[[84]], event.list.ext[[85]], event.list.ext[[86]], event.list.ext[[87]], event.list.ext[[89]],
+                                         event.list.ext[[91]], event.list.ext[[92]], event.list.ext[[93]], event.list.ext[[94]], event.list.ext[[95]], event.list.ext[[96]], event.list.ext[[97]], event.list.ext[[98]]))
+  
+  saveRDS(inlaA.j.T.Pc, here("Data-Output", "INLA", "allj.T.Pc.rds"))
+  
+  summary(inlaA.j.T.Pc)
 }
