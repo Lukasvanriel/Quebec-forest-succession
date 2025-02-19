@@ -1,0 +1,286 @@
+---
+title: Transition probabilities from survival hazards
+author: Lukas Van Riel
+output: pdf_document
+---
+
+#### Problem: How to use the INLAjoint output hazards to compute and visualise transition probabilities between classes? \
+
+
+First load the required packages.
+
+```{r,include=FALSE}
+# Load packages
+library(tidyverse)
+library(INLA)
+library(INLAjoint)
+library(here)
+```
+
+And the functions we will need.
+
+```{r,include=FALSE}
+# Function to restore the INLAobject in its original form. It had to be cut and put back together since it was too large to load on my personal laptop.
+set.back.inla <- function(string){
+  object <- list()
+  
+  file.list <- list.files(path=here(string), pattern=".RDS", all.files=TRUE, 
+                          full.names=F)
+  # skip .args.RDS (too heavy for my laptop; fix later if necessary)
+  if(paste0(string, "_.args.RDS") %in% file.list) file.list <- file.list[file.list != paste0(string, "_.args.RDS")]
+  
+  for(file in file.list) {
+    file <- substr(file, nchar(string) + 2, nchar(file))
+    file <- substr(file, 1, nchar(file) - 4)
+    object[[file]] <- readRDS(here(string, paste0(string, "_", file, ".RDS")))
+    print(names(object)[length(object)])
+  }
+ 
+  class(object) <- c("INLAjoint", "inla")
+  return(object)
+}
+## Plot parameters with CI:
+## Function that plots the individual coefficients for the specified parameter,
+## starting from the indicated class
+# inla.output requires to contain 
+plot_inla_param <- function(inla.output, info.classes, fr, parameter) {
+  inla.output %>% 
+    filter(from==fr) %>% 
+    select(from, to, all_of(parameter)) %>% 
+    unnest_wider(parameter) %>% 
+    rename(c("median"="0.5quant", "lquant"="0.025quant", "uquant"="0.975quant")) %>% 
+    merge(rename(info.classes, c("to"="Nb", "Name_to"="Name"))) %>% 
+    mutate(Name_to=factor(Name_to, levels = Name_to)) %>% 
+    ggplot(aes(x=Name_to)) +
+    geom_point(aes(y=median)) +
+    geom_errorbar(aes(ymin=lquant, ymax=uquant), width=0.2)+
+    ggtitle(paste0("coefficients for ", substring(parameter, 5, nchar(parameter)),", transitions starting from ", info.classes$Name[fr])) +
+    labs(y= "", x = "to")
+}
+
+plot_inla_covariates <- function(inla.output, info.classes, fr, d = 0.3) {
+  dodge <- position_dodge(width = d)
+  
+  inla.output %>% 
+    filter(from==fr) %>% 
+    select(from, to, colnames(full.df)[grepl("cov_", colnames(full.df))]) %>% 
+    unnest_wider(colnames(full.df)[grepl("cov_", colnames(full.df))], names_sep = ".") %>% 
+    rename_with(~str_replace(., '0.025quant', 'lquant')) %>% 
+    rename_with(~str_replace(., '0.975quant', 'uquant')) %>% 
+    rename_with(~str_replace(., '0.5quant', 'median')) %>% 
+    merge(rename(info.classes, c("to"="Nb", "Name_to"="Name"))) %>% 
+    mutate(Name_to=factor(Name_to, levels = Name_to)) %>% 
+    pivot_longer(cols = colnames(.)[grepl("cov_", colnames(.))]) %>% 
+    separate(name, into=c("covariate", "param"), sep="\\.") %>%
+    filter(param %in% c("median", "uquant", "lquant")) %>% 
+    pivot_wider(names_from = param) %>% 
+    ggplot(aes(x=Name_to)) +
+    geom_point(aes(x=Name_to, y=median, colour=covariate), position = dodge) +
+    geom_errorbar(aes(ymin=lquant, ymax=uquant, colour=covariate), position=dodge, width=0.2) +
+    ggtitle(paste("Covariate parameters for transitions starting from", info.classes$Name[fr])) +
+    labs(y= "", x = "to")
+}
+```
+
+Then import the data, either the complete INLAjoint object (the complete model output), or the object already reworked into a useful dataframe. Make sure the allj.T.C.Pc folder and full_df.RDS file are located in the same folder as this document or change the directories.
+
+```{r}
+# Set directory to be where this document is located
+here::i_am("SIFORT-Survival.Rmd")
+
+# Create original output object
+#inla.allj.T.C.Pc <- set.back.inla("allj.T.C.Pc")
+
+# Load output parameter data as a dataframe, where the parameter, including CI, values are found in the last columns. 
+full.df <- readRDS(here("full_df.RDS"))
+# Specific values can now be extracted as follows (e.g. median alpha value for transition 1->2):
+full.df$alpha[[1]]$"0.5quant"
+```
+
+Let's create an object to easily access the names of the classes and transitions.
+
+```{r}
+info.classes <- data.frame(Nb=seq(1:9), Name=c("Paper birch", "Shade int.", "Yellow birch", "Maples", "Other dec.", "Bals. fir", "B/R spruce", "Jack pine", "Other con."))
+```
+
+We can take a look at the parameter values and their credible intervals:
+
+```{r}
+# You can change the class where the transitions start and the parameter you want to see.
+plot_inla_param(full.df, info.classes, fr = 1, parameter = "cov_Tmean")
+```
+
+Alternatively we can plot all parameters simultaneously:
+
+```{r}
+plot_inla_covariates(full.df, info.classes, fr = 7)
+```
+
+Let's now try to plot the transition probabilities over time. I have included all the functions that are used for this in the next chunks rather than at the top. I think this might make it easier to check the functions if you want to. First, we'll define the Weibull hazard function and the cumulative Weibull hazard:
+
+```{r}
+# Weibull hazard. Covariate effects can be included in the lambda factor
+Wb <- function(t, alpha, lambda) {
+  alpha * t**(alpha-1) * lambda
+}
+# Cumulative Weibull hazard, the integrated Weibull hazard.
+Wb_H <- function(t, alpha, lambda) {
+  t**(alpha) * lambda
+}
+```
+
+Next, we'll use the Weibull function to compute the hazards for times 0 up to 60 years (can be altered). In Alvares et al. (2022) they call this risks, but really they are the hazards. I used the name risks since I was following along with the paper (section 7.4).
+
+```{r}
+# Computes the risks for the baseline hazards and including the effects of the perturbation type (1=fire, 2=harvest, 3=pest).
+get_risks <- function(inla.output, t=50){
+  years <- seq(0, t, by = 1)
+  risks <- list()
+  for(i in 1:nrow(inla.output)) {
+    risks[[i]] <- list()
+    risks[[i]]$baseline <- Wb(years, inla.output$alpha[[i]]$mean, 
+                              exp(inla.output$Intercept[[i]]$mean))
+    risks[[i]]$fire <- Wb(years, inla.output$alpha[[i]]$mean, 
+                          exp(inla.output$Intercept[[i]]$mean + full.df$cov_pert_class1[[i]]$mean))
+    risks[[i]]$harvest <- Wb(years, inla.output$alpha[[i]]$mean, 
+                             exp(inla.output$Intercept[[i]]$mean + full.df$cov_pert_class2[[i]]$mean))
+    risks[[i]]$pest <- Wb(years, inla.output$alpha[[i]]$mean, 
+                          exp(inla.output$Intercept[[i]]$mean + full.df$cov_pert_class3[[i]]$mean))
+  }
+  names(risks) <- as.character(1:nrow(inla.output))
+  risks
+}
+
+risks <- get_risks(full.df, t = 60)
+```
+
+Now I wrote 2 functions to calculate the probabilities to stay in a certain state as well as the transition probabilities:
+
+```{r}
+#Functions based on the formulas used in section 7.4 of Alvares et al. (2022). The structure of the functions are similar. They still need to be exponentiated in the case of the P(i->i). Cumsum is used (I think) to approximate integrals.
+trans_prob_timelapse_stay <- function(inla.output, state, t=50, risks=NULL) {
+  # Calculate the risks if they are not included or do not match the requested times
+  if(is.null(risks) || length(risks[[1]]$baseline) != (t+1)) risks <- get_risks(inla.output, t)
+  
+  #See which transitions depart from the state in question
+  trans.out <- inla.output %>% 
+    filter(from == state) %>% 
+    pull(inla_trans)
+  
+  stay.risks <- list()
+  
+  #apply the formula of Alvares et al. (2022)
+  cumulatives <- sapply(trans.out, FUN=function(x) cumsum(risks[[x]]$baseline))
+  stay.risks$baseline <- apply(as.matrix(cumulatives), 1, sum)
+  cumulatives <- sapply(trans.out, FUN=function(x) cumsum(risks[[x]]$fire))
+  stay.risks$fire <- apply(as.matrix(cumulatives), 1, sum)
+  cumulatives <- sapply(trans.out, FUN=function(x) cumsum(risks[[x]]$harvest))
+  stay.risks$harvest <- apply(as.matrix(cumulatives), 1, sum)
+  cumulatives <- sapply(trans.out, FUN=function(x) cumsum(risks[[x]]$pest))
+  stay.risks$pest <- apply(as.matrix(cumulatives), 1, sum)
+  
+  stay.risks
+}
+
+trans_prob_timelapse_leave <- function(inla.output, state.fr, state.to, t=50, risks=NULL) {
+  if(is.null(risks) || length(risks[[1]]$baseline) != (t+1)) risks <- get_risks(inla.output, t)
+  
+  trans.number <- full.df %>% 
+    filter(from == state.fr, to == state.to) %>% 
+    pull(inla_trans)
+  
+  leave.risks <- list()
+  
+  leave.risks$baseline <- cumsum(exp(-trans_prob_timelapse_stay(inla.output, state.fr, t=t, risks=risks)$baseline) * risks[[trans.number]]$baseline * exp(-trans_prob_timelapse_stay(inla.output, state.to, t=t, risks=risks)$baseline))
+  
+  leave.risks$fire <- cumsum(exp(-trans_prob_timelapse_stay(inla.output, state.fr, t=t, risks=risks)$fire) * risks[[trans.number]]$fire * exp(-trans_prob_timelapse_stay(inla.output, state.to, t=t, risks=risks)$fire))
+  leave.risks$harvest <- cumsum(exp(-trans_prob_timelapse_stay(inla.output, state.fr, t=t, risks=risks)$harvest) * risks[[trans.number]]$harvest * exp(-trans_prob_timelapse_stay(inla.output, state.to, t=t, risks=risks)$harvest))
+  leave.risks$pest <- cumsum(exp(-trans_prob_timelapse_stay(inla.output, state.fr, t=t, risks=risks)$pest) * risks[[trans.number]]$pest * exp(-trans_prob_timelapse_stay(inla.output, state.to, t=t, risks=risks)$pest))
+  
+  leave.risks
+}
+```
+
+We can now use these functions to try and calculate the transition probabilities. To get the probabilities of staying in a state, the results still need to be exponentiated. For the transition probabilities of changing state, it seems this is not the case based on the equations in section 7.4.
+
+```{r}
+# Lets plot the probability over time of staying in a certain state, as function of perturbation class (black=baseline, red=fire, green=harvest, purple=pest).
+years=0:60
+fr = 1 # Which state are we interested in?
+prob.stay <- trans_prob_timelapse_stay(full.df, state = fr, t=60)
+plot(years, exp(-prob.stay$baseline), pch=20, cex =1, col="black", ylab="Transition probability", xlab="time [years]", main=paste("From", info.classes$Name[fr]))
+points(years, exp(-prob.stay$fire), pch=20, cex =1, col="red")
+points(years, exp(-prob.stay$harvest), pch=20, cex =1, col="darkgreen")
+points(years, exp(-prob.stay$pest), pch=20, cex =1, col="purple")
+```
+
+Which might in theory be possible, but checking other states reveals that the probabilities all go to 0 at some point, some even very quickly:
+
+```{r}
+fr = 6 # Which state are we interested in?
+prob.stay <- trans_prob_timelapse_stay(full.df, state = fr, t=60)
+plot(years, exp(-prob.stay$baseline), pch=20, cex =1, col="black", ylab="Transition probability", xlab="time [years]", main=paste("From", info.classes$Name[fr]))
+points(years, exp(-prob.stay$fire), pch=20, cex =1, col="red")
+points(years, exp(-prob.stay$harvest), pch=20, cex =1, col="darkgreen")
+points(years, exp(-prob.stay$pest), pch=20, cex =1, col="purple")
+```
+
+Now let's check the probabilities to change state, again by perturbation type. According to the equations in section 7.4, they do not need to be exponentiated.
+
+```{r}
+fr=1
+to=2
+prob.leave <- trans_prob_timelapse_leave(full.df, fr, to, t=60)
+plot(years, prob.leave$baseline, pch=20, cex =1, col="black", ylim=c(0,0.2), ylab="Transition probability", xlab="time [years]", main=paste(info.classes$Name[fr], "to", info.classes$Name[to]))
+points(years, prob.leave$fire, pch=20, cex =1, col="red")
+points(years, prob.leave$harvest, pch=20, cex =1, col="darkgreen")
+points(years, prob.leave$pest, pch=20, cex =1, col="purple")
+
+```
+
+Let's look at different transitions over time, but starting from the same state. Black dots are the probability to stay in the state while red are the different probabilities of transition towards another state.
+
+```{r}
+fr = 1
+plot(years, exp(-trans_prob_timelapse_stay(full.df, state = fr, t=60)$baseline), pch=20, cex =1, col="black", ylab="Transition probability", xlab="time [years]", main=paste("From", info.classes$Name[fr]))
+for(j in (seq(1,9, by=1)[-fr])) {
+  points(years, trans_prob_timelapse_leave(full.df, fr, j, t=60)$baseline, pch=20, cex =1, col="red")
+}
+```
+
+Let's try to create a transition probability matrix now, for t=10 years. Rows indicate departure state, columns destination (so element [1,2] is the probability of transition from state 1 to state 2 after 10 years). At all times, adding the probabilities by row should result in 1. Let's see if that is the case:
+
+```{r}
+p.matr <- matrix(0, 9, 9)
+risks <- get_risks(full.df, t=50)
+# We can create a probability matrix for each t. Lets pick t=10 years, so this is element 11 in each vector
+for(i in 1:nrow(p.matr)){
+  for(j in 1:ncol(p.matr)){
+    if(i == j) {p.matr[i,j] <- exp(-trans_prob_timelapse_stay(full.df, i, t=60, risks)$baseline)[11]
+    } else {p.matr[i,j] <- trans_prob_timelapse_leave(full.df, i, j, t=60, risks)$baseline[11]}
+  }
+}
+#heatmap(p.matr, symm = T)
+
+apply(p.matr, 1, sum)
+```
+
+Which does not sum to 1, something must have gone wrong. It is not entirely unexpected since we never explicitly enforced the 1-(sum of all other probabilities) like they do in their section 7.4 (for p13 and p23). However, doing it the way they do seems arbitrary: Why don't they calculate the p13 and p23 using the formula while using the 1-(sum) for another probability. It just seems there are formula's for each probability, so it is unclear where to make sure the probabliities sum to 1. Maybe if we take the exponential?
+
+```{r}
+p.matr <- matrix(0, 9, 9)
+risks <- get_risks(full.df, t=50)
+# We can create a probability matrix for each t. Lets pick t=10 years, so this is element 11 in each vector
+for(i in 1:nrow(p.matr)){
+  for(j in 1:ncol(p.matr)){
+    if(i == j) {p.matr[i,j] <- exp(-trans_prob_timelapse_stay(full.df, i, t=60, risks)$baseline)[11]
+    } else {p.matr[i,j] <- 1-exp(-trans_prob_timelapse_leave(full.df, i, j, t=60, risks)$baseline)[11]}
+  }
+}
+
+apply(p.matr, 1, sum)
+```
+
+Which again seems incorrect. I also tried using the explicit integrated Weibull hazards instead of using cumsum to approximate the integral, but this does not solve the issue.
+
+Something is going wrong in my analysis, but I do not really know where or how to fix it. I'm not sure if the equations I use are correct, but they at least resemble what they do in Alvares et al. (2022). How to enforce the probabilities sum to 1 is not clear to me.

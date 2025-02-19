@@ -1,0 +1,440 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+%
+\documentclass[
+]{article}
+\usepackage{amsmath,amssymb}
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math} % this also loads fontspec
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+\usepackage{lmodern}
+\ifPDFTeX\else
+  % xetex/luatex font selection
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\usepackage[margin=1in]{geometry}
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\usepackage{framed}
+\definecolor{shadecolor}{RGB}{248,248,248}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.94,0.16,0.16}{#1}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\BuiltInTok}[1]{#1}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{0.64,0.00,0.00}{\textbf{#1}}}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\ImportTok}[1]{#1}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\usepackage{graphicx}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+% Set default figure placement to htbp
+\makeatletter
+\def\fps@figure{htbp}
+\makeatother
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+\ifLuaTeX
+  \usepackage{selnolig}  % disable illegal ligatures
+\fi
+\usepackage{bookmark}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\urlstyle{same}
+\hypersetup{
+  pdftitle={Transition probabilities from survival hazards},
+  pdfauthor={Lukas Van Riel},
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+
+\title{Transition probabilities from survival hazards}
+\author{Lukas Van Riel}
+\date{}
+
+\begin{document}
+\maketitle
+
+\paragraph{\texorpdfstring{Problem: How to use the INLAjoint output
+hazards to compute and visualise transition probabilities between
+classes?\\
+}{Problem: How to use the INLAjoint output hazards to compute and visualise transition probabilities between classes? }}\label{problem-how-to-use-the-inlajoint-output-hazards-to-compute-and-visualise-transition-probabilities-between-classes}
+
+First load the required packages.
+
+And the functions we will need.
+
+Then import the data, either the complete INLAjoint object (the complete
+model output), or the object already reworked into a useful dataframe.
+Make sure the allj.T.C.Pc folder and full\_df.RDS file are located in
+the same folder as this document or change the directories.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Set directory to be where this document is located}
+\NormalTok{here}\SpecialCharTok{::}\FunctionTok{i\_am}\NormalTok{(}\StringTok{"SIFORT{-}Survival.Rmd"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## here() starts at /Users/lukas/Desktop/RProjects/Quebec-forest-succession/R-scripts/03-Analysis
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Create original output object}
+\CommentTok{\#inla.allj.T.C.Pc \textless{}{-} set.back.inla("allj.T.C.Pc")}
+
+\CommentTok{\# Load output parameter data as a dataframe, where the parameter, including CI, values are found in the last columns. }
+\NormalTok{full.df }\OtherTok{\textless{}{-}} \FunctionTok{readRDS}\NormalTok{(}\FunctionTok{here}\NormalTok{(}\StringTok{"full\_df.RDS"}\NormalTok{))}
+\CommentTok{\# Specific values can now be extracted as follows (e.g. median alpha value for transition 1{-}\textgreater{}2):}
+\NormalTok{full.df}\SpecialCharTok{$}\NormalTok{alpha[[}\DecValTok{1}\NormalTok{]]}\SpecialCharTok{$}\StringTok{"0.5quant"}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] 2.192838
+\end{verbatim}
+
+Let's create an object to easily access the names of the classes and
+transitions.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{info.classes }\OtherTok{\textless{}{-}} \FunctionTok{data.frame}\NormalTok{(}\AttributeTok{Nb=}\FunctionTok{seq}\NormalTok{(}\DecValTok{1}\SpecialCharTok{:}\DecValTok{9}\NormalTok{), }\AttributeTok{Name=}\FunctionTok{c}\NormalTok{(}\StringTok{"Paper birch"}\NormalTok{, }\StringTok{"Shade int."}\NormalTok{, }\StringTok{"Yellow birch"}\NormalTok{, }\StringTok{"Maples"}\NormalTok{, }\StringTok{"Other dec."}\NormalTok{, }\StringTok{"Bals. fir"}\NormalTok{, }\StringTok{"B/R spruce"}\NormalTok{, }\StringTok{"Jack pine"}\NormalTok{, }\StringTok{"Other con."}\NormalTok{))}
+\end{Highlighting}
+\end{Shaded}
+
+We can take a look at the parameter values and their credible intervals:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# You can change the class where the transitions start and the parameter you want to see.}
+\FunctionTok{plot\_inla\_param}\NormalTok{(full.df, info.classes, }\AttributeTok{fr =} \DecValTok{1}\NormalTok{, }\AttributeTok{parameter =} \StringTok{"cov\_Tmean"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Warning: Using an external vector in selections was deprecated in tidyselect 1.1.0.
+## i Please use `all_of()` or `any_of()` instead.
+##   # Was:
+##   data %>% select(parameter)
+## 
+##   # Now:
+##   data %>% select(all_of(parameter))
+## 
+## See <https://tidyselect.r-lib.org/reference/faq-external-vector.html>.
+## This warning is displayed once every 8 hours.
+## Call `lifecycle::last_lifecycle_warnings()` to see where this warning was
+## generated.
+\end{verbatim}
+
+\includegraphics{SIFORT-Survival_files/figure-latex/unnamed-chunk-5-1.pdf}
+
+Alternatively we can plot all parameters simultaneously:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{plot\_inla\_covariates}\NormalTok{(full.df, info.classes, }\AttributeTok{fr =} \DecValTok{7}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{SIFORT-Survival_files/figure-latex/unnamed-chunk-6-1.pdf}
+
+Let's now try to plot the transition probabilities over time. I have
+included all the functions that are used for this in the next chunks
+rather than at the top. I think this might make it easier to check the
+functions if you want to. First, we'll define the Weibull hazard
+function and the cumulative Weibull hazard:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Weibull hazard. Covariate effects can be included in the lambda factor}
+\NormalTok{Wb }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(t, alpha, lambda) \{}
+\NormalTok{  alpha }\SpecialCharTok{*}\NormalTok{ t}\SpecialCharTok{**}\NormalTok{(alpha}\DecValTok{{-}1}\NormalTok{) }\SpecialCharTok{*}\NormalTok{ lambda}
+\NormalTok{\}}
+\CommentTok{\# Cumulative Weibull hazard, the integrated Weibull hazard.}
+\NormalTok{Wb\_H }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(t, alpha, lambda) \{}
+\NormalTok{  t}\SpecialCharTok{**}\NormalTok{(alpha) }\SpecialCharTok{*}\NormalTok{ lambda}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+Next, we'll use the Weibull function to compute the hazards for times 0
+up to 60 years (can be altered). In Alvares et al.~(2022) they call this
+risks, but really they are the hazards. I used the name risks since I
+was following along with the paper (section 7.4).
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Computes the risks for the baseline hazards and including the effects of the perturbation type (1=fire, 2=harvest, 3=pest).}
+\NormalTok{get\_risks }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(inla.output, }\AttributeTok{t=}\DecValTok{50}\NormalTok{)\{}
+\NormalTok{  years }\OtherTok{\textless{}{-}} \FunctionTok{seq}\NormalTok{(}\DecValTok{0}\NormalTok{, t, }\AttributeTok{by =} \DecValTok{1}\NormalTok{)}
+\NormalTok{  risks }\OtherTok{\textless{}{-}} \FunctionTok{list}\NormalTok{()}
+  \ControlFlowTok{for}\NormalTok{(i }\ControlFlowTok{in} \DecValTok{1}\SpecialCharTok{:}\FunctionTok{nrow}\NormalTok{(inla.output)) \{}
+\NormalTok{    risks[[i]] }\OtherTok{\textless{}{-}} \FunctionTok{list}\NormalTok{()}
+\NormalTok{    risks[[i]]}\SpecialCharTok{$}\NormalTok{baseline }\OtherTok{\textless{}{-}} \FunctionTok{Wb}\NormalTok{(years, inla.output}\SpecialCharTok{$}\NormalTok{alpha[[i]]}\SpecialCharTok{$}\NormalTok{mean, }
+                              \FunctionTok{exp}\NormalTok{(inla.output}\SpecialCharTok{$}\NormalTok{Intercept[[i]]}\SpecialCharTok{$}\NormalTok{mean))}
+\NormalTok{    risks[[i]]}\SpecialCharTok{$}\NormalTok{fire }\OtherTok{\textless{}{-}} \FunctionTok{Wb}\NormalTok{(years, inla.output}\SpecialCharTok{$}\NormalTok{alpha[[i]]}\SpecialCharTok{$}\NormalTok{mean, }
+                          \FunctionTok{exp}\NormalTok{(inla.output}\SpecialCharTok{$}\NormalTok{Intercept[[i]]}\SpecialCharTok{$}\NormalTok{mean }\SpecialCharTok{+}\NormalTok{ full.df}\SpecialCharTok{$}\NormalTok{cov\_pert\_class1[[i]]}\SpecialCharTok{$}\NormalTok{mean))}
+\NormalTok{    risks[[i]]}\SpecialCharTok{$}\NormalTok{harvest }\OtherTok{\textless{}{-}} \FunctionTok{Wb}\NormalTok{(years, inla.output}\SpecialCharTok{$}\NormalTok{alpha[[i]]}\SpecialCharTok{$}\NormalTok{mean, }
+                             \FunctionTok{exp}\NormalTok{(inla.output}\SpecialCharTok{$}\NormalTok{Intercept[[i]]}\SpecialCharTok{$}\NormalTok{mean }\SpecialCharTok{+}\NormalTok{ full.df}\SpecialCharTok{$}\NormalTok{cov\_pert\_class2[[i]]}\SpecialCharTok{$}\NormalTok{mean))}
+\NormalTok{    risks[[i]]}\SpecialCharTok{$}\NormalTok{pest }\OtherTok{\textless{}{-}} \FunctionTok{Wb}\NormalTok{(years, inla.output}\SpecialCharTok{$}\NormalTok{alpha[[i]]}\SpecialCharTok{$}\NormalTok{mean, }
+                          \FunctionTok{exp}\NormalTok{(inla.output}\SpecialCharTok{$}\NormalTok{Intercept[[i]]}\SpecialCharTok{$}\NormalTok{mean }\SpecialCharTok{+}\NormalTok{ full.df}\SpecialCharTok{$}\NormalTok{cov\_pert\_class3[[i]]}\SpecialCharTok{$}\NormalTok{mean))}
+\NormalTok{  \}}
+  \FunctionTok{names}\NormalTok{(risks) }\OtherTok{\textless{}{-}} \FunctionTok{as.character}\NormalTok{(}\DecValTok{1}\SpecialCharTok{:}\FunctionTok{nrow}\NormalTok{(inla.output))}
+\NormalTok{  risks}
+\NormalTok{\}}
+
+\NormalTok{risks }\OtherTok{\textless{}{-}} \FunctionTok{get\_risks}\NormalTok{(full.df, }\AttributeTok{t =} \DecValTok{60}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+Now I wrote 2 functions to calculate the probabilities to stay in a
+certain state as well as the transition probabilities:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\#Functions based on the formulas used in section 7.4 of Alvares et al. (2022). The structure of the functions are similar. They still need to be exponentiated in the case of the P(i{-}\textgreater{}i). Cumsum is used (I think) to approximate integrals.}
+\NormalTok{trans\_prob\_timelapse\_stay }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(inla.output, state, }\AttributeTok{t=}\DecValTok{50}\NormalTok{, }\AttributeTok{risks=}\ConstantTok{NULL}\NormalTok{) \{}
+  \CommentTok{\# Calculate the risks if they are not included or do not match the requested times}
+  \ControlFlowTok{if}\NormalTok{(}\FunctionTok{is.null}\NormalTok{(risks) }\SpecialCharTok{||} \FunctionTok{length}\NormalTok{(risks[[}\DecValTok{1}\NormalTok{]]}\SpecialCharTok{$}\NormalTok{baseline) }\SpecialCharTok{!=}\NormalTok{ (t}\SpecialCharTok{+}\DecValTok{1}\NormalTok{)) risks }\OtherTok{\textless{}{-}} \FunctionTok{get\_risks}\NormalTok{(inla.output, t)}
+  
+  \CommentTok{\#See which transitions depart from the state in question}
+\NormalTok{  trans.out }\OtherTok{\textless{}{-}}\NormalTok{ inla.output }\SpecialCharTok{\%\textgreater{}\%} 
+    \FunctionTok{filter}\NormalTok{(from }\SpecialCharTok{==}\NormalTok{ state) }\SpecialCharTok{\%\textgreater{}\%} 
+    \FunctionTok{pull}\NormalTok{(inla\_trans)}
+  
+\NormalTok{  stay.risks }\OtherTok{\textless{}{-}} \FunctionTok{list}\NormalTok{()}
+  
+  \CommentTok{\#apply the formula of Alvares et al. (2022)}
+\NormalTok{  cumulatives }\OtherTok{\textless{}{-}} \FunctionTok{sapply}\NormalTok{(trans.out, }\AttributeTok{FUN=}\ControlFlowTok{function}\NormalTok{(x) }\FunctionTok{cumsum}\NormalTok{(risks[[x]]}\SpecialCharTok{$}\NormalTok{baseline))}
+\NormalTok{  stay.risks}\SpecialCharTok{$}\NormalTok{baseline }\OtherTok{\textless{}{-}} \FunctionTok{apply}\NormalTok{(}\FunctionTok{as.matrix}\NormalTok{(cumulatives), }\DecValTok{1}\NormalTok{, sum)}
+\NormalTok{  cumulatives }\OtherTok{\textless{}{-}} \FunctionTok{sapply}\NormalTok{(trans.out, }\AttributeTok{FUN=}\ControlFlowTok{function}\NormalTok{(x) }\FunctionTok{cumsum}\NormalTok{(risks[[x]]}\SpecialCharTok{$}\NormalTok{fire))}
+\NormalTok{  stay.risks}\SpecialCharTok{$}\NormalTok{fire }\OtherTok{\textless{}{-}} \FunctionTok{apply}\NormalTok{(}\FunctionTok{as.matrix}\NormalTok{(cumulatives), }\DecValTok{1}\NormalTok{, sum)}
+\NormalTok{  cumulatives }\OtherTok{\textless{}{-}} \FunctionTok{sapply}\NormalTok{(trans.out, }\AttributeTok{FUN=}\ControlFlowTok{function}\NormalTok{(x) }\FunctionTok{cumsum}\NormalTok{(risks[[x]]}\SpecialCharTok{$}\NormalTok{harvest))}
+\NormalTok{  stay.risks}\SpecialCharTok{$}\NormalTok{harvest }\OtherTok{\textless{}{-}} \FunctionTok{apply}\NormalTok{(}\FunctionTok{as.matrix}\NormalTok{(cumulatives), }\DecValTok{1}\NormalTok{, sum)}
+\NormalTok{  cumulatives }\OtherTok{\textless{}{-}} \FunctionTok{sapply}\NormalTok{(trans.out, }\AttributeTok{FUN=}\ControlFlowTok{function}\NormalTok{(x) }\FunctionTok{cumsum}\NormalTok{(risks[[x]]}\SpecialCharTok{$}\NormalTok{pest))}
+\NormalTok{  stay.risks}\SpecialCharTok{$}\NormalTok{pest }\OtherTok{\textless{}{-}} \FunctionTok{apply}\NormalTok{(}\FunctionTok{as.matrix}\NormalTok{(cumulatives), }\DecValTok{1}\NormalTok{, sum)}
+  
+\NormalTok{  stay.risks}
+\NormalTok{\}}
+
+\NormalTok{trans\_prob\_timelapse\_leave }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(inla.output, state.fr, state.to, }\AttributeTok{t=}\DecValTok{50}\NormalTok{, }\AttributeTok{risks=}\ConstantTok{NULL}\NormalTok{) \{}
+  \ControlFlowTok{if}\NormalTok{(}\FunctionTok{is.null}\NormalTok{(risks) }\SpecialCharTok{||} \FunctionTok{length}\NormalTok{(risks[[}\DecValTok{1}\NormalTok{]]}\SpecialCharTok{$}\NormalTok{baseline) }\SpecialCharTok{!=}\NormalTok{ (t}\SpecialCharTok{+}\DecValTok{1}\NormalTok{)) risks }\OtherTok{\textless{}{-}} \FunctionTok{get\_risks}\NormalTok{(inla.output, t)}
+  
+\NormalTok{  trans.number }\OtherTok{\textless{}{-}}\NormalTok{ full.df }\SpecialCharTok{\%\textgreater{}\%} 
+    \FunctionTok{filter}\NormalTok{(from }\SpecialCharTok{==}\NormalTok{ state.fr, to }\SpecialCharTok{==}\NormalTok{ state.to) }\SpecialCharTok{\%\textgreater{}\%} 
+    \FunctionTok{pull}\NormalTok{(inla\_trans)}
+  
+\NormalTok{  leave.risks }\OtherTok{\textless{}{-}} \FunctionTok{list}\NormalTok{()}
+  
+\NormalTok{  leave.risks}\SpecialCharTok{$}\NormalTok{baseline }\OtherTok{\textless{}{-}} \FunctionTok{cumsum}\NormalTok{(}\FunctionTok{exp}\NormalTok{(}\SpecialCharTok{{-}}\FunctionTok{trans\_prob\_timelapse\_stay}\NormalTok{(inla.output, state.fr, }\AttributeTok{t=}\NormalTok{t, }\AttributeTok{risks=}\NormalTok{risks)}\SpecialCharTok{$}\NormalTok{baseline) }\SpecialCharTok{*}\NormalTok{ risks[[trans.number]]}\SpecialCharTok{$}\NormalTok{baseline }\SpecialCharTok{*} \FunctionTok{exp}\NormalTok{(}\SpecialCharTok{{-}}\FunctionTok{trans\_prob\_timelapse\_stay}\NormalTok{(inla.output, state.to, }\AttributeTok{t=}\NormalTok{t, }\AttributeTok{risks=}\NormalTok{risks)}\SpecialCharTok{$}\NormalTok{baseline))}
+  
+\NormalTok{  leave.risks}\SpecialCharTok{$}\NormalTok{fire }\OtherTok{\textless{}{-}} \FunctionTok{cumsum}\NormalTok{(}\FunctionTok{exp}\NormalTok{(}\SpecialCharTok{{-}}\FunctionTok{trans\_prob\_timelapse\_stay}\NormalTok{(inla.output, state.fr, }\AttributeTok{t=}\NormalTok{t, }\AttributeTok{risks=}\NormalTok{risks)}\SpecialCharTok{$}\NormalTok{fire) }\SpecialCharTok{*}\NormalTok{ risks[[trans.number]]}\SpecialCharTok{$}\NormalTok{fire }\SpecialCharTok{*} \FunctionTok{exp}\NormalTok{(}\SpecialCharTok{{-}}\FunctionTok{trans\_prob\_timelapse\_stay}\NormalTok{(inla.output, state.to, }\AttributeTok{t=}\NormalTok{t, }\AttributeTok{risks=}\NormalTok{risks)}\SpecialCharTok{$}\NormalTok{fire))}
+\NormalTok{  leave.risks}\SpecialCharTok{$}\NormalTok{harvest }\OtherTok{\textless{}{-}} \FunctionTok{cumsum}\NormalTok{(}\FunctionTok{exp}\NormalTok{(}\SpecialCharTok{{-}}\FunctionTok{trans\_prob\_timelapse\_stay}\NormalTok{(inla.output, state.fr, }\AttributeTok{t=}\NormalTok{t, }\AttributeTok{risks=}\NormalTok{risks)}\SpecialCharTok{$}\NormalTok{harvest) }\SpecialCharTok{*}\NormalTok{ risks[[trans.number]]}\SpecialCharTok{$}\NormalTok{harvest }\SpecialCharTok{*} \FunctionTok{exp}\NormalTok{(}\SpecialCharTok{{-}}\FunctionTok{trans\_prob\_timelapse\_stay}\NormalTok{(inla.output, state.to, }\AttributeTok{t=}\NormalTok{t, }\AttributeTok{risks=}\NormalTok{risks)}\SpecialCharTok{$}\NormalTok{harvest))}
+\NormalTok{  leave.risks}\SpecialCharTok{$}\NormalTok{pest }\OtherTok{\textless{}{-}} \FunctionTok{cumsum}\NormalTok{(}\FunctionTok{exp}\NormalTok{(}\SpecialCharTok{{-}}\FunctionTok{trans\_prob\_timelapse\_stay}\NormalTok{(inla.output, state.fr, }\AttributeTok{t=}\NormalTok{t, }\AttributeTok{risks=}\NormalTok{risks)}\SpecialCharTok{$}\NormalTok{pest) }\SpecialCharTok{*}\NormalTok{ risks[[trans.number]]}\SpecialCharTok{$}\NormalTok{pest }\SpecialCharTok{*} \FunctionTok{exp}\NormalTok{(}\SpecialCharTok{{-}}\FunctionTok{trans\_prob\_timelapse\_stay}\NormalTok{(inla.output, state.to, }\AttributeTok{t=}\NormalTok{t, }\AttributeTok{risks=}\NormalTok{risks)}\SpecialCharTok{$}\NormalTok{pest))}
+  
+\NormalTok{  leave.risks}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+We can now use these functions to try and calculate the transition
+probabilities. To get the probabilities of staying in a state, the
+results still need to be exponentiated. For the transition probabilities
+of changing state, it seems this is not the case based on the equations
+in section 7.4.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Lets plot the probability over time of staying in a certain state, as function of perturbation class (black=baseline, red=fire, green=harvest, purple=pest).}
+\NormalTok{years}\OtherTok{=}\DecValTok{0}\SpecialCharTok{:}\DecValTok{60}
+\NormalTok{fr }\OtherTok{=} \DecValTok{1} \CommentTok{\# Which state are we interested in?}
+\NormalTok{prob.stay }\OtherTok{\textless{}{-}} \FunctionTok{trans\_prob\_timelapse\_stay}\NormalTok{(full.df, }\AttributeTok{state =}\NormalTok{ fr, }\AttributeTok{t=}\DecValTok{60}\NormalTok{)}
+\FunctionTok{plot}\NormalTok{(years, }\FunctionTok{exp}\NormalTok{(}\SpecialCharTok{{-}}\NormalTok{prob.stay}\SpecialCharTok{$}\NormalTok{baseline), }\AttributeTok{pch=}\DecValTok{20}\NormalTok{, }\AttributeTok{cex =}\DecValTok{1}\NormalTok{, }\AttributeTok{col=}\StringTok{"black"}\NormalTok{, }\AttributeTok{ylab=}\StringTok{"Transition probability"}\NormalTok{, }\AttributeTok{xlab=}\StringTok{"time [years]"}\NormalTok{, }\AttributeTok{main=}\FunctionTok{paste}\NormalTok{(}\StringTok{"From"}\NormalTok{, info.classes}\SpecialCharTok{$}\NormalTok{Name[fr]))}
+\FunctionTok{points}\NormalTok{(years, }\FunctionTok{exp}\NormalTok{(}\SpecialCharTok{{-}}\NormalTok{prob.stay}\SpecialCharTok{$}\NormalTok{fire), }\AttributeTok{pch=}\DecValTok{20}\NormalTok{, }\AttributeTok{cex =}\DecValTok{1}\NormalTok{, }\AttributeTok{col=}\StringTok{"red"}\NormalTok{)}
+\FunctionTok{points}\NormalTok{(years, }\FunctionTok{exp}\NormalTok{(}\SpecialCharTok{{-}}\NormalTok{prob.stay}\SpecialCharTok{$}\NormalTok{harvest), }\AttributeTok{pch=}\DecValTok{20}\NormalTok{, }\AttributeTok{cex =}\DecValTok{1}\NormalTok{, }\AttributeTok{col=}\StringTok{"darkgreen"}\NormalTok{)}
+\FunctionTok{points}\NormalTok{(years, }\FunctionTok{exp}\NormalTok{(}\SpecialCharTok{{-}}\NormalTok{prob.stay}\SpecialCharTok{$}\NormalTok{pest), }\AttributeTok{pch=}\DecValTok{20}\NormalTok{, }\AttributeTok{cex =}\DecValTok{1}\NormalTok{, }\AttributeTok{col=}\StringTok{"purple"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{SIFORT-Survival_files/figure-latex/unnamed-chunk-10-1.pdf}
+
+Which might in theory be possible, but checking other states reveals
+that the probabilities all go to 0 at some point, some even very
+quickly:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{fr }\OtherTok{=} \DecValTok{6} \CommentTok{\# Which state are we interested in?}
+\NormalTok{prob.stay }\OtherTok{\textless{}{-}} \FunctionTok{trans\_prob\_timelapse\_stay}\NormalTok{(full.df, }\AttributeTok{state =}\NormalTok{ fr, }\AttributeTok{t=}\DecValTok{60}\NormalTok{)}
+\FunctionTok{plot}\NormalTok{(years, }\FunctionTok{exp}\NormalTok{(}\SpecialCharTok{{-}}\NormalTok{prob.stay}\SpecialCharTok{$}\NormalTok{baseline), }\AttributeTok{pch=}\DecValTok{20}\NormalTok{, }\AttributeTok{cex =}\DecValTok{1}\NormalTok{, }\AttributeTok{col=}\StringTok{"black"}\NormalTok{, }\AttributeTok{ylab=}\StringTok{"Transition probability"}\NormalTok{, }\AttributeTok{xlab=}\StringTok{"time [years]"}\NormalTok{, }\AttributeTok{main=}\FunctionTok{paste}\NormalTok{(}\StringTok{"From"}\NormalTok{, info.classes}\SpecialCharTok{$}\NormalTok{Name[fr]))}
+\FunctionTok{points}\NormalTok{(years, }\FunctionTok{exp}\NormalTok{(}\SpecialCharTok{{-}}\NormalTok{prob.stay}\SpecialCharTok{$}\NormalTok{fire), }\AttributeTok{pch=}\DecValTok{20}\NormalTok{, }\AttributeTok{cex =}\DecValTok{1}\NormalTok{, }\AttributeTok{col=}\StringTok{"red"}\NormalTok{)}
+\FunctionTok{points}\NormalTok{(years, }\FunctionTok{exp}\NormalTok{(}\SpecialCharTok{{-}}\NormalTok{prob.stay}\SpecialCharTok{$}\NormalTok{harvest), }\AttributeTok{pch=}\DecValTok{20}\NormalTok{, }\AttributeTok{cex =}\DecValTok{1}\NormalTok{, }\AttributeTok{col=}\StringTok{"darkgreen"}\NormalTok{)}
+\FunctionTok{points}\NormalTok{(years, }\FunctionTok{exp}\NormalTok{(}\SpecialCharTok{{-}}\NormalTok{prob.stay}\SpecialCharTok{$}\NormalTok{pest), }\AttributeTok{pch=}\DecValTok{20}\NormalTok{, }\AttributeTok{cex =}\DecValTok{1}\NormalTok{, }\AttributeTok{col=}\StringTok{"purple"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{SIFORT-Survival_files/figure-latex/unnamed-chunk-11-1.pdf}
+
+Now let's check the probabilities to change state, again by perturbation
+type. According to the equations in section 7.4, they do not need to be
+exponentiated.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{fr}\OtherTok{=}\DecValTok{1}
+\NormalTok{to}\OtherTok{=}\DecValTok{2}
+\NormalTok{prob.leave }\OtherTok{\textless{}{-}} \FunctionTok{trans\_prob\_timelapse\_leave}\NormalTok{(full.df, fr, to, }\AttributeTok{t=}\DecValTok{60}\NormalTok{)}
+\FunctionTok{plot}\NormalTok{(years, prob.leave}\SpecialCharTok{$}\NormalTok{baseline, }\AttributeTok{pch=}\DecValTok{20}\NormalTok{, }\AttributeTok{cex =}\DecValTok{1}\NormalTok{, }\AttributeTok{col=}\StringTok{"black"}\NormalTok{, }\AttributeTok{ylim=}\FunctionTok{c}\NormalTok{(}\DecValTok{0}\NormalTok{,}\FloatTok{0.2}\NormalTok{), }\AttributeTok{ylab=}\StringTok{"Transition probability"}\NormalTok{, }\AttributeTok{xlab=}\StringTok{"time [years]"}\NormalTok{, }\AttributeTok{main=}\FunctionTok{paste}\NormalTok{(info.classes}\SpecialCharTok{$}\NormalTok{Name[fr], }\StringTok{"to"}\NormalTok{, info.classes}\SpecialCharTok{$}\NormalTok{Name[to]))}
+\FunctionTok{points}\NormalTok{(years, prob.leave}\SpecialCharTok{$}\NormalTok{fire, }\AttributeTok{pch=}\DecValTok{20}\NormalTok{, }\AttributeTok{cex =}\DecValTok{1}\NormalTok{, }\AttributeTok{col=}\StringTok{"red"}\NormalTok{)}
+\FunctionTok{points}\NormalTok{(years, prob.leave}\SpecialCharTok{$}\NormalTok{harvest, }\AttributeTok{pch=}\DecValTok{20}\NormalTok{, }\AttributeTok{cex =}\DecValTok{1}\NormalTok{, }\AttributeTok{col=}\StringTok{"darkgreen"}\NormalTok{)}
+\FunctionTok{points}\NormalTok{(years, prob.leave}\SpecialCharTok{$}\NormalTok{pest, }\AttributeTok{pch=}\DecValTok{20}\NormalTok{, }\AttributeTok{cex =}\DecValTok{1}\NormalTok{, }\AttributeTok{col=}\StringTok{"purple"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{SIFORT-Survival_files/figure-latex/unnamed-chunk-12-1.pdf}
+
+Let's look at different transitions over time, but starting from the
+same state. Black dots are the probability to stay in the state while
+red are the different probabilities of transition towards another state.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{fr }\OtherTok{=} \DecValTok{1}
+\FunctionTok{plot}\NormalTok{(years, }\FunctionTok{exp}\NormalTok{(}\SpecialCharTok{{-}}\FunctionTok{trans\_prob\_timelapse\_stay}\NormalTok{(full.df, }\AttributeTok{state =}\NormalTok{ fr, }\AttributeTok{t=}\DecValTok{60}\NormalTok{)}\SpecialCharTok{$}\NormalTok{baseline), }\AttributeTok{pch=}\DecValTok{20}\NormalTok{, }\AttributeTok{cex =}\DecValTok{1}\NormalTok{, }\AttributeTok{col=}\StringTok{"black"}\NormalTok{, }\AttributeTok{ylab=}\StringTok{"Transition probability"}\NormalTok{, }\AttributeTok{xlab=}\StringTok{"time [years]"}\NormalTok{, }\AttributeTok{main=}\FunctionTok{paste}\NormalTok{(}\StringTok{"From"}\NormalTok{, info.classes}\SpecialCharTok{$}\NormalTok{Name[fr]))}
+\ControlFlowTok{for}\NormalTok{(j }\ControlFlowTok{in}\NormalTok{ (}\FunctionTok{seq}\NormalTok{(}\DecValTok{1}\NormalTok{,}\DecValTok{9}\NormalTok{, }\AttributeTok{by=}\DecValTok{1}\NormalTok{)[}\SpecialCharTok{{-}}\NormalTok{fr])) \{}
+  \FunctionTok{points}\NormalTok{(years, }\FunctionTok{trans\_prob\_timelapse\_leave}\NormalTok{(full.df, fr, j, }\AttributeTok{t=}\DecValTok{60}\NormalTok{)}\SpecialCharTok{$}\NormalTok{baseline, }\AttributeTok{pch=}\DecValTok{20}\NormalTok{, }\AttributeTok{cex =}\DecValTok{1}\NormalTok{, }\AttributeTok{col=}\StringTok{"red"}\NormalTok{)}
+\NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{SIFORT-Survival_files/figure-latex/unnamed-chunk-13-1.pdf}
+
+Let's try to create a transition probability matrix now, for t=10 years.
+Rows indicate departure state, columns destination (so element {[}1,2{]}
+is the probability of transition from state 1 to state 2 after 10
+years). At all times, adding the probabilities by row should result in
+1. Let's see if that is the case:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{p.matr }\OtherTok{\textless{}{-}} \FunctionTok{matrix}\NormalTok{(}\DecValTok{0}\NormalTok{, }\DecValTok{9}\NormalTok{, }\DecValTok{9}\NormalTok{)}
+\NormalTok{risks }\OtherTok{\textless{}{-}} \FunctionTok{get\_risks}\NormalTok{(full.df, }\AttributeTok{t=}\DecValTok{50}\NormalTok{)}
+\CommentTok{\# We can create a probability matrix for each t. Lets pick t=10 years, so this is element 11 in each vector}
+\ControlFlowTok{for}\NormalTok{(i }\ControlFlowTok{in} \DecValTok{1}\SpecialCharTok{:}\FunctionTok{nrow}\NormalTok{(p.matr))\{}
+  \ControlFlowTok{for}\NormalTok{(j }\ControlFlowTok{in} \DecValTok{1}\SpecialCharTok{:}\FunctionTok{ncol}\NormalTok{(p.matr))\{}
+    \ControlFlowTok{if}\NormalTok{(i }\SpecialCharTok{==}\NormalTok{ j) \{p.matr[i,j] }\OtherTok{\textless{}{-}} \FunctionTok{exp}\NormalTok{(}\SpecialCharTok{{-}}\FunctionTok{trans\_prob\_timelapse\_stay}\NormalTok{(full.df, i, }\AttributeTok{t=}\DecValTok{60}\NormalTok{, risks)}\SpecialCharTok{$}\NormalTok{baseline)[}\DecValTok{11}\NormalTok{]}
+\NormalTok{    \} }\ControlFlowTok{else}\NormalTok{ \{p.matr[i,j] }\OtherTok{\textless{}{-}} \FunctionTok{trans\_prob\_timelapse\_leave}\NormalTok{(full.df, i, j, }\AttributeTok{t=}\DecValTok{60}\NormalTok{, risks)}\SpecialCharTok{$}\NormalTok{baseline[}\DecValTok{11}\NormalTok{]\}}
+\NormalTok{  \}}
+\NormalTok{\}}
+\CommentTok{\#heatmap(p.matr, symm = T)}
+
+\FunctionTok{apply}\NormalTok{(p.matr, }\DecValTok{1}\NormalTok{, sum)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] 0.9719050 0.9348895 0.8260202 0.9176409 0.9715195 0.7040014 0.9412288
+## [8] 0.9745535 0.7733566
+\end{verbatim}
+
+Which does not sum to 1, something must have gone wrong. It is not
+entirely unexpected since we never explicitly enforced the 1-(sum of all
+other probabilities) like they do in their section 7.4 (for p13 and
+p23). However, doing it the way they do seems arbitrary: Why don't they
+calculate the p13 and p23 using the formula while using the 1-(sum) for
+another probability. It just seems there are formula's for each
+probability, so it is unclear where to make sure the probabliities sum
+to 1. Maybe if we take the exponential?
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{p.matr }\OtherTok{\textless{}{-}} \FunctionTok{matrix}\NormalTok{(}\DecValTok{0}\NormalTok{, }\DecValTok{9}\NormalTok{, }\DecValTok{9}\NormalTok{)}
+\NormalTok{risks }\OtherTok{\textless{}{-}} \FunctionTok{get\_risks}\NormalTok{(full.df, }\AttributeTok{t=}\DecValTok{50}\NormalTok{)}
+\CommentTok{\# We can create a probability matrix for each t. Lets pick t=10 years, so this is element 11 in each vector}
+\ControlFlowTok{for}\NormalTok{(i }\ControlFlowTok{in} \DecValTok{1}\SpecialCharTok{:}\FunctionTok{nrow}\NormalTok{(p.matr))\{}
+  \ControlFlowTok{for}\NormalTok{(j }\ControlFlowTok{in} \DecValTok{1}\SpecialCharTok{:}\FunctionTok{ncol}\NormalTok{(p.matr))\{}
+    \ControlFlowTok{if}\NormalTok{(i }\SpecialCharTok{==}\NormalTok{ j) \{p.matr[i,j] }\OtherTok{\textless{}{-}} \FunctionTok{exp}\NormalTok{(}\SpecialCharTok{{-}}\FunctionTok{trans\_prob\_timelapse\_stay}\NormalTok{(full.df, i, }\AttributeTok{t=}\DecValTok{60}\NormalTok{, risks)}\SpecialCharTok{$}\NormalTok{baseline)[}\DecValTok{11}\NormalTok{]}
+\NormalTok{    \} }\ControlFlowTok{else}\NormalTok{ \{p.matr[i,j] }\OtherTok{\textless{}{-}} \DecValTok{1}\SpecialCharTok{{-}}\FunctionTok{exp}\NormalTok{(}\SpecialCharTok{{-}}\FunctionTok{trans\_prob\_timelapse\_leave}\NormalTok{(full.df, i, j, }\AttributeTok{t=}\DecValTok{60}\NormalTok{, risks)}\SpecialCharTok{$}\NormalTok{baseline)[}\DecValTok{11}\NormalTok{]\}}
+\NormalTok{  \}}
+\NormalTok{\}}
+
+\FunctionTok{apply}\NormalTok{(p.matr, }\DecValTok{1}\NormalTok{, sum)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] 0.9700433 0.8509731 0.6353125 0.8537048 0.9697588 0.5580185 0.7973369
+## [8] 0.9742572 0.5655932
+\end{verbatim}
+
+Which again seems incorrect. I also tried using the explicit integrated
+Weibull hazards instead of using cumsum to approximate the integral, but
+this does not solve the issue.
+
+Something is going wrong in my analysis, but I do not really know where
+or how to fix it. I'm not sure if the equations I use are correct, but
+they at least resemble what they do in Alvares et al.~(2022). How to
+enforce the probabilities sum to 1 is not clear to me.
+
+\end{document}

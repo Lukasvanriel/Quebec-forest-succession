@@ -10,11 +10,11 @@ library(here)
 
 ### Data ###
 #Changes to dataset can be made in Msm.R; Or need to structure it differently
-data_msm <- read.csv(here("Data", "BTE", "bte_msm_ready.csv"))[,-1]
+data_msm2 <- read.csv(here("Data", "BTE", "bte_msm_ready.csv"))[,-1]
 
 ### Prepare dataset ###
 
-data.inla.inter <- data_msm |>
+data.inla.inter <- data_msm2 |>
   select(TESSELLE, time, sp_class, LONGI, LATIT) |>
   mutate(ID=TESSELLE) |>
   mutate(from=sp_class) |>

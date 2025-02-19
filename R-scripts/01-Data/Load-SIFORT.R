@@ -75,9 +75,10 @@ bte4 <- filter_bte(data4, strict=TRUE)
 bte5 <- filter_bte(data5, strict=TRUE)
 
 #rm(data1, data2, data3, data4, data5)
+#rm(data_raw1, data_raw2, data_raw3, data_raw4, data_raw5)
 
 ###There is a significant fraction of TESSELLE that are lacking Species information
-#TODO: Look into which to drop and which to keep
+
 bte1 <- bte1 |> filter(! is.na(GR_ESS))
 bte2 <- bte2 |> filter(! is.na(GR_ESS))
 bte3 <- bte3 |> filter(! is.na(GR_ESS))
@@ -90,10 +91,22 @@ bte22 <- bte2 |> filter(is.na(GR_ESS))
 bte33 <- bte3 |> filter(is.na(GR_ESS))
 bte44 <- bte4 |> filter(is.na(GR_ESS))
 bte55 <- bte5 |> filter(is.na(GR_ESS))
-# 
-# plot(bte11$LONGI, bte11$LATIT)
-# bte[bte$TESSELLE == bte11$TESSELLE[1289],]
-# bte11[bte11$TESSELLE == bte11$TESSELLE[1289],]
+
+
+#TODO: Look into which to drop and which to keep
+#Split into tesselle that never have a species description and those that miss some
+tess.list <- names(table(c(bte11$TESSELLE, bte22$TESSELLE, bte33$TESSELLE,
+                           bte44$TESSELLE, bte55$TESSELLE)))
+
+#Create boolean vector indicating which may be saved based on other information
+tess.salv <- sapply(tess.list, FUN = function(t) {
+  all.info <- c(bte1[bte1$TESSELLE == t, "GR_ESS"], bte2[bte2$TESSELLE == t, "GR_ESS"],
+                     bte3[bte3$TESSELLE == t, "GR_ESS"], bte4[bte4$TESSELLE == t, "GR_ESS"],
+                     bte5[bte5$TESSELLE == t, "GR_ESS"])
+  if(sum(! is.na(all.info)) > 0){return(TRUE)
+  } else {return(FALSE)}
+  })
+tess.salv
 
 ### Check out documentation file on species groups ### 
 
@@ -175,7 +188,7 @@ filt_plantations <- function(data, docu) {
   ##Based on disturbance information:
   tess_origine <- data |>
     filter(ORIGINE %in% c("P", "PA", "PE", "PL", "PLB", "PLN", "PLR", "PRR",
-                          "ENM", "ENS", "ETR", "FR", "REA", "RPS", "VG")) #TODO: Maybe too many, eg ETR, FR?
+                          "ENM", "ENS", "ETR", "FR", "REA", "RPS", "VG")) #TODO: Maybe too many e.g FR?
   
   ##Based on Description of species class:
   data_doc <- plyr::join(data, docu, by="GR_ESS", type="left")

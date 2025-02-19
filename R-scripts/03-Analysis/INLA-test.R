@@ -77,7 +77,7 @@ for(i in helper) {
   for(j in helper[-i]) {
     transitions <- c(transitions, 10*i + j%%10)
   }
-}
+} 
 
 event.list <- vector("list", transitions[length(transitions)])
 #if(! file.exists(here("Data", "BTE", "INLA", "Event_"), as.character(tr), ".csv", sep="")))
@@ -411,7 +411,7 @@ if(F) {# Joint transitions for all, cov=T,C,Ptype
   summary(inlaA.j.T.C.Pc)
 }
 
-if(T) {# Joint transitions for all, cov=T,Ptype
+if(F) {# Joint transitions for all, cov=T,Ptype
   for(i in 1:length(event.list)) {
     if(! is.null(event.list[[i]])){event.list[[i]]$cov_pert_class <- as.factor(event.list[[i]]$cov_pert_class)}
     if(! is.null(event.list.ext[[i]])){event.list.ext[[i]]$cov_pert_class <- as.factor(event.list.ext[[i]]$cov_pert_class)}
@@ -504,4 +504,23 @@ if(T) {# Joint transitions for all, cov=T,Ptype
   saveRDS(inlaA.j.T.Pc, here("Data-Output", "INLA", "allj.T.Pc.rds"))
   
   summary(inlaA.j.T.Pc)
+}
+
+if(T) {# Individual transitions for all, cov=T,C,Ptype
+  for(i in 1:length(event.list)) {
+    if(! is.null(event.list[[i]])){event.list[[i]]$cov_pert_class <- as.factor(event.list[[i]]$cov_pert_class)}
+    if(! is.null(event.list.ext[[i]])){event.list.ext[[i]]$cov_pert_class <- as.factor(event.list.ext[[i]]$cov_pert_class)}
+  }
+  
+  for (t in transitions) {
+    print(t)
+    m <- joint(formSurv= list(inla.surv(time, status) ~ cov_Tmean + cov_CMI + cov_pert_class),
+          basRisk = rep("weibullsurv", 1),
+          dataSurv = list(event.list.ext[[t]]),
+          control = list(int.strategy = "eb", priorAssoc = list(mean=2, prec=0.01)))
+    
+    summary(m)
+    saveRDS(m, here("Data-Output", "INLA", "individual", "TCPc", 
+                    paste0(as.character(t),"_T.C.Pc.rds")))
+  }
 }
