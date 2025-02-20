@@ -13,7 +13,7 @@ library(p3state.msm)
 set.seed(123) # For reproducibility
 
 # Define the number of subjects and states
-n_subjects <- 10000
+n_subjects <- 1000
 n_states <- 3
 
 # Define the transition matrix. We will be using 2 covariates (1 cat, 1 cont)
@@ -102,7 +102,7 @@ expand.trans <- function(line.fr, line.to, transitions = 1:3){
                         Tstop = line.to$Time,
                         from = line.fr$State,
                         to = x,
-                        Status = ifelse(x == line.to$State, 1, 0),
+                        Status = ifelse(x == line.to$State, 3, 0),
                         ContCov = line.fr$ContinuousCovariate1,
                         CatCov = line.fr$CategoricalCovariate ) 
     } )
@@ -110,7 +110,8 @@ expand.trans <- function(line.fr, line.to, transitions = 1:3){
 }
 
 expand.stay <- function(line.fr, line.to, future = -1, transitions = 1:3){
-  inclu <- ifelse(future == -1, list(transitions[-line.fr$State]), list(future))[[1]]
+  inclu <- list(transitions[-line.fr$State])[[1]]
+  #inclu <- ifelse(future == -1, list(transitions[-line.fr$State]), list(future))[[1]]
   expansions <- lapply(inclu, FUN = function(x) {
     lines <- data.frame(ID = line.fr$ID,
                         Tstart = line.fr$Time, 
@@ -137,22 +138,67 @@ expand.all <- function(block){
             r <- r + 1
           }
           expand.stay(line.cor, block[x,], future = -1)}
-      } else{
+      } else {
         first.fut <- block$State[x:nrow(block)][which(block$State[x:nrow(block)] != block$State[x])[1]]
         expand.stay(block[x - 1,], block[x,], first.fut) # Only for future state because rest will be taken care of then as well
       }
     } else {
       line.cor <- block[x - 1,]
-      r = 2
-      while((x - r) > 0 && block$State[x - 1] == block$State[x - r]) {
-        line.cor <- block[x - r,]
-        r <- r + 1
-        }
+
       expand.trans(line.cor, block[x,])
     }
   })
   bind_rows(expansion)
 }
+
+if(T){
+  
+  expand.stay <- function(line.fr, line.to, future = -1, transitions = 1:3){
+    inclu <- ifelse(future == -1, list(transitions[-line.fr$State]), list(future))[[1]]
+    expansions <- lapply(inclu, FUN = function(x) {
+      lines <- data.frame(ID = line.fr$ID,
+                          Tstart = line.fr$Time, 
+                          Tstop = line.to$Time,
+                          from = line.fr$State,
+                          to = x,
+                          Status = 0,
+                          ContCov = line.fr$ContinuousCovariate1,
+                          CatCov = line.fr$CategoricalCovariate ) 
+    } )
+    bind_rows(expansions)
+  }
+  
+  expand.all <- function(block){
+    expansion <- lapply(2:nrow(block), FUN = function(x) {
+      if(block$State[x] == block$State[x - 1]) {
+        no.fut.change <- all(block$State[x:nrow(block)] == block$State[x])
+        if(no.fut.change) {
+          if(x == nrow(block)){
+            line.cor <- block[x - 1,]
+            r = 2
+            while((x - r) > 0 && block$State[x - 1] == block$State[x - r]) {
+              line.cor <- block[x - r,]
+              r <- r + 1
+            }
+            expand.stay(line.cor, block[x,], future = -1)}
+        } else{
+          first.fut <- block$State[x:nrow(block)][which(block$State[x:nrow(block)] != block$State[x])[1]]
+          expand.stay(block[x - 1,], block[x,], first.fut) # Only for future state because rest will be taken care of then as well
+        }
+      } else {
+        line.cor <- block[x - 1,]
+        r = 2
+        while((x - r) > 0 && block$State[x - 1] == block$State[x - r]) {
+          line.cor <- block[x - r,]
+          r <- r + 1
+        }
+        expand.trans(line.cor, block[x,])
+      }
+    })
+    bind_rows(expansion)
+  }
+} # Older versions
+
 
 ## The data
 data_inla <- bind_rows(lapply(unique(data_msm$ID), FUN = function(x) {
@@ -180,10 +226,12 @@ event.list <- lapply(1:length(Surv.list), FUN = function(x){
 })
 
 for(i in 1:length(Surv.list)) { 
-  Surv.list[[i]] <- inla.surv(time = event.list[[i]]$Tstop,
-                              truncation = event.list[[i]]$Tstart,
-                              event = event.list[[i]]$Status)
+  Surv.list[[i]] <- inla.surv(time = event.list[[i]]$Tstart,
+                              event = event.list[[i]]$Status,
+                              time2 = event.list[[i]]$Tstop)
 }
+
+?inla.surv
 
 s12 <- Surv.list[[1]]
 s13 <- Surv.list[[2]]
@@ -193,32 +241,6 @@ s31 <- Surv.list[[5]]
 s32 <- Surv.list[[6]]
 
 #### Run models ####
-# Set the time
-t <- seq(0,100, by=1)
-
-# Create statetable
-msm_state <- statetable.msm(State, ID, data=data_msm)
-round(funrar::make_relative(msm_state), 3)
-
-### msm
-# Define the model (all transitions are possible here)
-Q.model <- rep(0.3, 9)
-dim(Q.model) <- c(3,3)
-
-# Get initial estimate for Q
-
-Q.init <- crudeinits.msm(State ~ Time, ID, data = data_msm, qmatrix = Q.model)
-
-# Run base msm
-output.msm.base.CG <-  msm(State ~ Time, ID, data = data_msm, qmatrix = Q.init, method= "CG",
-                           control = list(fnscale = 100000, maxit=1000))
-output.msm.base.CG
-
-output.msm.cov.CG <-  msm(State ~ Time, ID, data=data_msm, qmatrix = Q.init, method= "CG",
-                          control = list(fnscale = 100000,  maxit=100),
-                          covariates = ~ CategoricalCovariate + ContinuousCovariate1)
-output.msm.cov.CG
-
 ### INLA
 
 weib.surv <- joint(formSurv = list(
@@ -228,9 +250,27 @@ weib.surv <- joint(formSurv = list(
                       s23 ~ ContCov + CatCov,
                       s31 ~ ContCov + CatCov,
                       s32 ~ ContCov + CatCov),
-      basRisk = rep("weibullsurv", 6), dataSurv = event.list,
-      control = list(config=TRUE))
+      basRisk = rep("weibullsurv", 6), 
+      dataSurv = event.list,
+      control = list(config=TRUE)) #, verbose=TRUE
+
 summary(weib.surv)
+
+weib.surv <- joint(formSurv = list(
+  inla.surv(time = event.list[[1]]$Tstart, time2 = event.list[[1]]$Tstop, event = event.list[[1]]$Status) ~ ContCov + CatCov,
+  inla.surv(time = event.list[[2]]$Tstart, time2 = event.list[[2]]$Tstop, event = event.list[[2]]$Status) ~ ContCov + CatCov,
+  inla.surv(time = event.list[[3]]$Tstart, time2 = event.list[[3]]$Tstop, event = event.list[[3]]$Status) ~ ContCov + CatCov,
+  inla.surv(time = event.list[[4]]$Tstart, time2 = event.list[[4]]$Tstop, event = event.list[[4]]$Status) ~ ContCov + CatCov,
+  inla.surv(time = event.list[[5]]$Tstart, time2 = event.list[[5]]$Tstop, event = event.list[[5]]$Status) ~ ContCov + CatCov,
+  inla.surv(time = event.list[[6]]$Tstart, time2 = event.list[[6]]$Tstop, event = event.list[[6]]$Status) ~ ContCov + CatCov),
+  basRisk = rep("weibullsurv", 6), 
+  dataSurv = event.list,
+  control = list(config=TRUE))
+summary(weib.surv)
+
+Surv.list[[i]] <- inla.surv(time = event.list[[i]]$Tstart,
+                            time2 = event.list[[i]]$Tstop,
+                            event = event.list[[i]]$Status)
 
 # No covariate:
 weib.surv.base <- joint(formSurv = list(
@@ -287,6 +327,33 @@ exp.surv.base <- joint(formSurv = list(
   basRisk = rep("exponentialsurv", 6), dataSurv = event.list,
   control = list(config=TRUE))
 summary(exp.surv.base)
+
+# Set the time
+t <- seq(0,100, by=1)
+
+# Create statetable
+msm_state <- statetable.msm(State, ID, data=data_msm)
+round(funrar::make_relative(msm_state), 3)
+
+### msm
+# Define the model (all transitions are possible here)
+Q.model <- rep(0.3, 9)
+dim(Q.model) <- c(3,3)
+
+# Get initial estimate for Q
+
+Q.init <- crudeinits.msm(State ~ Time, ID, data = data_msm, qmatrix = Q.model)
+
+# Run base msm
+output.msm.base.CG <-  msm(State ~ Time, ID, data = data_msm, qmatrix = Q.init, method= "CG",
+                           control = list(fnscale = 100000, maxit=1000))
+output.msm.base.CG
+
+output.msm.cov.CG <-  msm(State ~ Time, ID, data=data_msm, qmatrix = Q.init, method= "CG",
+                          control = list(fnscale = 100000,  maxit=100),
+                          covariates = ~ CategoricalCovariate + ContinuousCovariate1)
+output.msm.cov.CG
+
 
 #### Create output objects ####
 
@@ -759,6 +826,57 @@ points(start1.X1[,1], start1.X1[,4], pch=20, col="red")
 
 
 ######### OLD ##########
+# Some backups
+
+expand.stay <- function(line.fr, line.to, future = -1, transitions = 1:3){
+  inclu <- ifelse(future == -1, list(transitions[-line.fr$State]), list(future))[[1]]
+  expansions <- lapply(inclu, FUN = function(x) {
+    lines <- data.frame(ID = line.fr$ID,
+                        Tstart = line.fr$Time, 
+                        Tstop = line.to$Time,
+                        from = line.fr$State,
+                        to = x,
+                        Status = 0,
+                        ContCov = line.fr$ContinuousCovariate1,
+                        CatCov = line.fr$CategoricalCovariate ) 
+  } )
+  bind_rows(expansions)
+}
+
+expand.all <- function(block){
+  expansion <- lapply(2:nrow(block), FUN = function(x) {
+    if(block$State[x] == block$State[x - 1]) {
+      no.fut.change <- all(block$State[x:nrow(block)] == block$State[x])
+      if(no.fut.change) {
+        if(x == nrow(block)){
+          line.cor <- block[x - 1,]
+          r = 2
+          while((x - r) > 0 && block$State[x - 1] == block$State[x - r]) {
+            line.cor <- block[x - r,]
+            r <- r + 1
+          }
+          expand.stay(line.cor, block[x,], future = -1)}
+      } else{
+        first.fut <- block$State[x:nrow(block)][which(block$State[x:nrow(block)] != block$State[x])[1]]
+        expand.stay(block[x - 1,], block[x,], first.fut) # Only for future state because rest will be taken care of then as well
+      }
+    } else {
+      line.cor <- block[x - 1,]
+      r = 2
+      while((x - r) > 0 && block$State[x - 1] == block$State[x - r]) {
+        line.cor <- block[x - r,]
+        r <- r + 1
+      }
+      expand.trans(line.cor, block[x,])
+    }
+  })
+  bind_rows(expansion)
+}
+
+
+
+
+
 #### Analysis ####
 # Let's try the differential equations
 library(deSolve)
