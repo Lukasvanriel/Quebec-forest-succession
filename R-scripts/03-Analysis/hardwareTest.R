@@ -11,7 +11,7 @@ library(peakRAM)
 conflicts_prefer(dplyr::filter)
 
 #install.packages("R.rsp")
-#devtools::install_github('DenisRustand/INLAjoint', build_vignettes = TRUE)
+devtools::install_github('DenisRustand/INLAjoint', build_vignettes = TRUE)
 
 ### Check out arguments ####
 datasets <- commandArgs(trailingOnly = TRUE)[1]
