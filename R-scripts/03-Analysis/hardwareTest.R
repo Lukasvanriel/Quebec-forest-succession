@@ -5,8 +5,16 @@ library(INLAjoint)
 library(here)
 library(conflicted)
 library(msm)
+library(pryr)
+library(peakRAM)
 
 conflicts_prefer(dplyr::filter)
+
+### Check out arguments ####
+datasets <- commandArgs(trailingOnly = TRUE)[1]
+
+# If no datasets are provide, create them first, else run the specified datasets:
+if(is.na(datasets)){
 
 ### Data ###
 #Changes to dataset can be made in Msm.R; Or need to structure it differently
@@ -53,20 +61,53 @@ length(unique(c(bte1$TESSELLE, bte2$TESSELLE, bte3$TESSELLE, bte4$TESSELLE, bte5
 table(data_msm2$SREG_ECO)
 
 aT <- data_msm2 %>% filter(SREG_ECO == "4aT")
-bT <- data_msm2 %>% filter(SREG_ECO == "4cT")
-cT <- data_msm2 %>% filter(SREG_ECO == "4bT")
+bM <- data_msm2 %>% filter(SREG_ECO == "4bM")
+bS <- data_msm2 %>% filter(SREG_ECO == "4bS")
+bT <- data_msm2 %>% filter(SREG_ECO == "4bT")
+cM <- data_msm2 %>% filter(SREG_ECO == "4cM")
+cT <- data_msm2 %>% filter(SREG_ECO == "4cT")
+dM <- data_msm2 %>% filter(SREG_ECO == "4dM")
+dT <- data_msm2 %>% filter(SREG_ECO == "4dT")
+eT <- data_msm2 %>% filter(SREG_ECO == "4eT")
+fM <- data_msm2 %>% filter(SREG_ECO == "4fM")
+fS <- data_msm2 %>% filter(SREG_ECO == "4fS")
+fT <- data_msm2 %>% filter(SREG_ECO == "4fT")
+gT <- data_msm2 %>% filter(SREG_ECO == "4gT")
+hT <- data_msm2 %>% filter(SREG_ECO == "4hT")
 
 
 length(unique(aT$TESSELLE))
+length(unique(bM$TESSELLE))
+length(unique(bS$TESSELLE))
 length(unique(bT$TESSELLE))
-length(unique(bT$TESSELLE))
+length(unique(cM$TESSELLE))
+length(unique(cT$TESSELLE))
+#length(unique(dM$TESSELLE))
+length(unique(dT$TESSELLE))
+length(unique(eT$TESSELLE))
+#length(unique(fM$TESSELLE))
+length(unique(fS$TESSELLE))
+length(unique(fT$TESSELLE))
+length(unique(gT$TESSELLE))
+length(unique(hT$TESSELLE))
+
 
 
 statetable.msm(sp_class, TESSELLE, aT) # !
+statetable.msm(sp_class, TESSELLE, bM) # !
+statetable.msm(sp_class, TESSELLE, bS) # !
 statetable.msm(sp_class, TESSELLE, bT) # !
+#statetable.msm(sp_class, TESSELLE, cM) # !
 statetable.msm(sp_class, TESSELLE, cT) # !
+statetable.msm(sp_class, TESSELLE, dT) # !
+statetable.msm(sp_class, TESSELLE, eT) # !
+statetable.msm(sp_class, TESSELLE, fS) # !
+statetable.msm(sp_class, TESSELLE, fT) # !
+statetable.msm(sp_class, TESSELLE, gT) # !
+statetable.msm(sp_class, TESSELLE, hT) # !
 
-datasets <- list(aT, bT, cT)
+
+datasets <- list(aT, bM, bS, bT, cT, dT)
 datasets.filt <- lapply(datasets, function(x) {
   x %>% 
     mutate(cov_frail = factor(-round(LONGI,0)),
@@ -88,10 +129,10 @@ select_random_TESSELLE <- function(df, N){
 datasets_1k <- lapply(datasets.filt, function(x) select_random_TESSELLE(x, 1000))
 datasets_2k <- lapply(datasets.filt, function(x) select_random_TESSELLE(x, 2000))
 datasets_4k <- lapply(datasets.filt, function(x) select_random_TESSELLE(x, 4000))
-datasets_10k <- lapply(datasets.filt, function(x) select_random_TESSELLE(x, 10000))
-datasets_20k <- lapply(datasets.filt, function(x) select_random_TESSELLE(x, 20000))
-
-### Prep datasets for INLA:
+datasets_8k <- lapply(datasets.filt, function(x) select_random_TESSELLE(x, 8000))
+datasets_16k <- lapply(datasets.filt, function(x) select_random_TESSELLE(x, 16000))
+  
+### Functions ####
 
 expand.trans <- function(line.fr, line.to, transitions = 1:9){
   
@@ -101,7 +142,7 @@ expand.trans <- function(line.fr, line.to, transitions = 1:9){
                         Tstop = line.to$time,
                         from = line.fr$sp_class,
                         to = x,
-                        Status = ifelse(x == line.to$sp_class, 1, 0),
+                        Status = ifelse(x == line.to$sp_class, 3, 0),
                         cov_Tmean = line.fr$cov_Tmean,
                         cov_CMI = line.fr$cov_CMI,
                         cov_soil = line.fr$cov_soil,
@@ -114,7 +155,8 @@ expand.trans <- function(line.fr, line.to, transitions = 1:9){
 }
 
 expand.stay <- function(line.fr, line.to, future = -1, transitions = 1:9){
-  inclu <- ifelse(future == -1, list(transitions[-line.fr$sp_class]), list(future))[[1]]
+  inclu <- list(transitions[-line.fr$sp_class])[[1]]
+  
   expansions <- lapply(inclu, FUN = function(x) {
     lines <- data.frame(ID = line.fr$TESSELLE,
                         Tstart = line.fr$time, 
@@ -152,18 +194,13 @@ expand.all <- function(block){
       }
     } else {
       line.cor <- block[x - 1,]
-      r = 2
-      while((x - r) > 0 && block$sp_class[x - 1] == block$sp_class[x - r]) {
-        line.cor <- block[x - r,]
-        r <- r + 1
-      }
       expand.trans(line.cor, block[x,])
     }
   })
   bind_rows(expansion)
 }
 
-## The data
+### Prepare the datasets for INLA ####
 data_inla <- bind_rows(lapply(unique(datasets_1k[[3]]$TESSELLE), FUN = function(x) {
   expand.all(datasets_1k[[3]] %>% filter(TESSELLE == x))
 } ))
@@ -186,13 +223,13 @@ datasets_4k_inla <- lapply(datasets_4k, function(df) {
   } ))
 })
 
-datasets_10k_inla <- lapply(datasets_10k, function(df) {
+datasets_10k_inla <- lapply(datasets_8k, function(df) {
   bind_rows(lapply(unique(df$TESSELLE), FUN = function(x) {
     expand.all(df %>% filter(TESSELLE == x))
   } ))
 })
 
-datasets_20k_inla <- lapply(datasets_20k, function(df) {
+datasets_16k_inla <- lapply(datasets_16k, function(df) {
   bind_rows(lapply(unique(df$TESSELLE), FUN = function(x) {
     expand.all(df %>% filter(TESSELLE == x))
   } ))
@@ -201,16 +238,12 @@ datasets_20k_inla <- lapply(datasets_20k, function(df) {
 write_rds(datasets_1k_inla, here("Data", "HardwareRequirements", "HR_inla_1k.RDS"))
 write_rds(datasets_2k_inla, here("Data", "HardwareRequirements", "HR_inla_2k.RDS"))
 write_rds(datasets_4k_inla, here("Data", "HardwareRequirements", "HR_inla_4k.RDS"))
-write_rds(datasets_10k_inla, here("Data", "HardwareRequirements", "HR_inla_10k.RDS"))
-write_rds(datasets_20k_inla, here("Data", "HardwareRequirements", "HR_inla_20k.RDS"))
+write_rds(datasets_10k_inla, here("Data", "HardwareRequirements", "HR_inla_8k.RDS"))
+write_rds(datasets_16k_inla, here("Data", "HardwareRequirements", "HR_inla_16k.RDS"))
 
-######### Run the models:
-
-data.inla <- read_rds(here("Data", "HardwareRequirements", "HR_inla_2k.RDS"))
-
-df1 <- data.inla[[2]]
-
-## Convert to survival objects:
+} else{ 
+  
+#### Functions #### 
 get_transition_states <- function(k, N) {
   from_state <- (k - 1) %/% (N - 1) + 1
   position <- (k - 1) %% (N - 1)
@@ -221,49 +254,87 @@ get_transition_states <- function(k, N) {
   return(c(from_state, to_state))
 }
 
-Nb.states <- 9
-Surv.list <- vector("list", Nb.states * (Nb.states - 1))
+run_INLA <- function(data, formula, Nstates=9){
+  ## Convert to survival objects:
+  Surv.list <- vector("list", Nstates * (Nstates - 1))
+  
+  event.list <- lapply(seq_along(Surv.list), FUN = function(x){
+    state.info <- get_transition_states(x, Nstates)
+    data %>% 
+      filter(from == state.info[1],
+             to == state.info[2])
+  })
+  
+  for(i in seq_along(Surv.list)) { 
+    Surv.list[[i]] <- inla.surv(time = event.list[[i]]$Tstart,
+                                time2 = event.list[[i]]$Tstop,
+                                event = event.list[[i]]$Status)
+  }
+  
+  ## Set up the model
+  names(Surv.list) <- paste0("s", seq_along(Surv.list))
+  
+  # Assign named survival objects to the environment
+  list2env(Surv.list, envir = .GlobalEnv)
+  
+  
+  formulas <- lapply(seq_along(Surv.list), function(i) {
+    as.formula(paste0("s", i, " ~ ", formula))
+  } )
+  
+  ## run the model
+  exp.surv <- joint(formSurv = formulas,
+                    basRisk = rep("exponentialsurv", length(formulas)), dataSurv = event.list,
+                    control = list(config=TRUE))
+}
 
-event.list <- lapply(seq_along(Surv.list), FUN = function(x){
-  state.info <- get_transition_states(x, Nb.states)
-  df1 %>% 
-    filter(from == state.info[1],
-           to == state.info[2])
-})
-
-for(i in seq_along(Surv.list)) { 
-  Surv.list[[i]] <- inla.surv(time = event.list[[i]]$Tstop,
-                              truncation = event.list[[i]]$Tstart,
-                              event = event.list[[i]]$Status)
+mem.time_INLA <- function(d) {
+  start_time <- Sys.time()
+  mem_before <- mem_used()
+  model.output <- run_INLA(data = d, formula = "cov_Tmean + cov_pert_class")
+  mem_after <- mem_used()
+  end_time <- Sys.time()
+  
+  print(paste("Time:", as.character(round(end_time - start_time, 2)), "seconds"))
+  print(paste("Memory:", as.character(round((mem_after - mem_before)/ 1024^2, 2)), "MB"))
+  
+  output <- c(round(end_time - start_time, 2)[[1]], round((mem_after - mem_before)[[1]]/ 1024^2, 2))
+  
+  names(output) <- c("time", "memory")
+  output
 }
 
 
-#### Now set up the runs
 
-# Automate cause otherwise have to repeat 72 times
+#### Load data ####
+datasets <- "1k"
+data <- read_rds(here("Data", "HardwareRequirements", paste0("HR_inla_", datasets, ".RDS")))
 
-names(Surv.list) <- paste0("s", seq_along(Surv.list))
+test1 <- peakRAM(a <- mem.time_INLA(data[[2]]))
+test$Peak_RAM_Used_MiB/ 1024
 
-# Assign named survival objects to the environment
-list2env(Surv.list, envir = .GlobalEnv)
-
-
-formulas <- lapply(seq_along(Surv.list), function(i) {
-  as.formula(paste0("s", i, " ~ cov_Tmean"))
-  } )
-
-weib.surv <- joint(formSurv = inla.surv(time = event.list[[1]]$Tstop,
-                                        truncation = event.list[[1]]$Tstart,
-                                        event = event.list[[1]]$Status) ~ 1,
-                   basRisk = rep("exponentialsurv", 1), dataSurv = event.list[[1]],
-                   control = list(config=TRUE))
-summary(weib.surv)
-plot(weib.surv)
+lapply(1:2, function(x) bind_rows(lapply(data, mem.time_INLA)))
 
 
-weib.surv <- joint(formSurv = formulas,
-                   basRisk = rep("weibullsurv", length(formulas)), dataSurv = event.list,
-                   control = list(config=TRUE))
+
+} # End else
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+### OLD #####
+if(F){
 
 s1 <- Surv.list[[1]]
 s2 <- Surv.list[[2]]
@@ -415,10 +486,8 @@ weib.surv <- joint(formSurv = list(
                    basRisk = rep("exponentialsurv", 72), dataSurv = event.list,
                    control = list(config=TRUE))
 summary(weib.surv)
-plot(weib.surv)
+#plot(weib.surv)
+summary(exp.surv)
 
 
-sum(is.na(event.list[[x]]$cov_pert_class))
-
-lapply(event.list, function(x) sum(is.na(x$cov_pert_class)))
-
+}

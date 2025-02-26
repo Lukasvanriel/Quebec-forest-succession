@@ -151,7 +151,7 @@ expand.all <- function(block){
   bind_rows(expansion)
 }
 
-if(T){
+if(F){
   
   expand.stay <- function(line.fr, line.to, future = -1, transitions = 1:3){
     inclu <- ifelse(future == -1, list(transitions[-line.fr$State]), list(future))[[1]]
@@ -351,7 +351,7 @@ output.msm.base.CG
 
 output.msm.cov.CG <-  msm(State ~ Time, ID, data=data_msm, qmatrix = Q.init, method= "CG",
                           control = list(fnscale = 100000,  maxit=100),
-                          covariates = ~ CategoricalCovariate + ContinuousCovariate1)
+                          covariates = ~ CategoricalCovariate + ContinuousCovariate)
 output.msm.cov.CG
 
 
@@ -502,6 +502,7 @@ generate_QExp <- function(t, params){
 }
 
 # Gather the output parameters
+t <- 1:60
 parameters <- list()
 
 parameters$alpha <- weib.surv$summary.hyperpar$mean
@@ -774,6 +775,23 @@ points(p.msm.df[[1]]$time, p.msm.df[[1]]$t33, pch=20, col="darkgreen")
 points(p.msm.df[[1]]$time, p.msm.df[[1]]$t31, pch=20, col="orange")
 points(p.msm.df[[1]]$time, p.msm.df[[1]]$t32, pch=20, col="lightblue")
 
+# Covariates:
+plot(0:max(t), p.df$p11, pch=20, ylim=c(0,1))
+points(0:max(t), p.df2$p11, pch=20, ylim=c(0,1), col="red")
+points(0:max(t), p.df3$p11, pch=20, ylim=c(0,1), col="blue")
+points(p.msm.df[[1]]$time, p.msm.df[[1]]$t11, pch=20, col="darkgreen")
+points(p.msm.df[[2]]$time, p.msm.df[[2]]$t11, pch=20, col="orange")
+points(p.msm.df[[3]]$time, p.msm.df[[3]]$t11, pch=20, col="lightblue")
+abline(v = 10)
+
+
+plot(0:max(t), p.df$p11, pch=20, ylim=c(0,1))
+points(0:max(t), p.df2$p11, pch=20, ylim=c(0,1), col="red")
+points(0:max(t), p.df3$p11, pch=20, ylim=c(0,1), col="blue")
+points(p.msm.df[[1]]$time, p.msm.df[[1]]$t11, pch=20, col="darkgreen")
+points(p.msm.df[[2]]$time, p.msm.df[[2]]$t11, pch=20, col="orange")
+points(p.msm.df[[3]]$time, p.msm.df[[3]]$t11, pch=20, col="lightblue")
+abline(v = 10)
 
 
  ## Create some plots p(t)

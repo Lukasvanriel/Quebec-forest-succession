@@ -3,10 +3,12 @@
 # lines 156 - 178 convert data_inla to a list where each element contains the specific transitions (event.list)
 # 179 onwards contains code that creates the list of survival objects Surv.list (setting time2 as the end of the intervals)
 # 195 onwards attempts to run the model using 'joint'
+if(F){
 install.packages("INLA",repos=c(getOption("repos"),INLA="https://inla.r-inla-download.org/R/stable"), dep=TRUE) 
 install.packages("R.rsp") # (only for the vignette)
 
 devtools::install_github('DenisRustand/INLAjoint', build_vignettes = TRUE)
+}
 ### 0: Load packages ####
 library(tidyverse)
 library(INLA)
@@ -207,3 +209,4 @@ weib.surv <- joint(formSurv = list(
   dataSurv = event.list,
   control = list(config=TRUE)) #, verbose=TRUE
 summary(weib.surv)
+
