@@ -10,6 +10,9 @@ library(peakRAM)
 
 conflicts_prefer(dplyr::filter)
 
+#install.packages("R.rsp")
+#devtools::install_github('DenisRustand/INLAjoint', build_vignettes = TRUE)
+
 ### Check out arguments ####
 datasets <- commandArgs(trailingOnly = TRUE)[1]
 
@@ -242,7 +245,6 @@ write_rds(datasets_10k_inla, here("Data", "HardwareRequirements", "HR_inla_8k.RD
 write_rds(datasets_16k_inla, here("Data", "HardwareRequirements", "HR_inla_16k.RDS"))
 
 } else{ 
-  
 #### Functions #### 
 get_transition_states <- function(k, N) {
   from_state <- (k - 1) %/% (N - 1) + 1
@@ -258,7 +260,7 @@ run_INLA <- function(data, formula, Nstates=9){
   ## Convert to survival objects:
   Surv.list <- vector("list", Nstates * (Nstates - 1))
   
-  event.list <- lapply(seq_along(Surv.list), FUN = function(x){
+  event.list <<- lapply(seq_along(Surv.list), FUN = function(x){
     state.info <- get_transition_states(x, Nstates)
     data %>% 
       filter(from == state.info[1],
@@ -307,21 +309,16 @@ mem.time_INLA <- function(d) {
 
 
 #### Load data ####
-datasets <- "1k"
 data <- read_rds(here("Data", "HardwareRequirements", paste0("HR_inla_", datasets, ".RDS")))
+mem.time_INLA(data[[2]])
 
-lapply(1:2, function(x) bind_rows(lapply(data, mem.time_INLA)))
+#lapply(1:2, function(x) bind_rows(lapply(data, mem.time_INLA)))
 
 
 test1 <- peakRAM(a <- mem.time_INLA(data[[2]]))
-test$Peak_RAM_Used_MiB/ 1024
+test1$Peak_RAM_Used_MiB/ 1024
 
 } # End else
-
-
-
-
-
 
 
 
