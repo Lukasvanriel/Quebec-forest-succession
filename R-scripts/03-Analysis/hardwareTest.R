@@ -310,12 +310,11 @@ mem.time_INLA <- function(d) {
 datasets <- "1k"
 data <- read_rds(here("Data", "HardwareRequirements", paste0("HR_inla_", datasets, ".RDS")))
 
-test1 <- peakRAM(a <- mem.time_INLA(data[[2]]))
-test$Peak_RAM_Used_MiB/ 1024
-
 lapply(1:2, function(x) bind_rows(lapply(data, mem.time_INLA)))
 
 
+test1 <- peakRAM(a <- mem.time_INLA(data[[2]]))
+test$Peak_RAM_Used_MiB/ 1024
 
 } # End else
 
