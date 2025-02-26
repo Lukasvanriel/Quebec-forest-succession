@@ -1,4 +1,5 @@
 #### Load packages ####
+install.packages("pryr", "peakRAM")
 library(tidyverse)
 library(INLA)
 library(INLAjoint)
