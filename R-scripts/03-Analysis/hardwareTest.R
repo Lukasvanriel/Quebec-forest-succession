@@ -307,7 +307,6 @@ mem.time_INLA <- function(d) {
 }
 
 
-
 #### Load data ####
 data <- read_rds(here("Data", "HardwareRequirements", paste0("HR_inla_", datasets, ".RDS")))
 mem.time_INLA(data[[2]])
