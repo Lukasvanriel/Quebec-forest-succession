@@ -286,7 +286,7 @@ run_INLA <- function(data, formula, Nstates=9){
   
   ## run the model
   exp.surv <- joint(formSurv = formulas,
-                    basRisk = rep("exponentialsurv", length(formulas)), dataSurv = event.list,
+                    basRisk = rep("weibullsurv", length(formulas)), dataSurv = event.list,
                     control = list(config=TRUE))
 }
 
