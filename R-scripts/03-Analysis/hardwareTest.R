@@ -318,7 +318,7 @@ a
 
 
 test1 <- peakRAM(a <- mem.time_INLA(data[[1]]))
-test1$Peak_RAM_Used_MiB/ 1024
+test1$Peak_RAM_Used_MiB
 
 } # End else
 
