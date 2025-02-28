@@ -293,7 +293,7 @@ run_INLA <- function(data, formula, Nstates=9){
 mem.time_INLA <- function(d, f) {
   start_time <- Sys.time()
   mem_before <- mem_used()
-  model.output <- run_INLA(data = d, formula = "cov_Tmean + cov_CMI + cov_soil + cov_pert_class + cov_time_pert + cov_pert_sev")
+  model.output <- run_INLA(data = d, formula = "cov_Tmean + cov_CMI + cov_soil + cov_pert_class + cov_time_pert + cov_pert_sev + (1 | cov_frail)")
   mem_after <- mem_used()
   end_time <- Sys.time()
   
