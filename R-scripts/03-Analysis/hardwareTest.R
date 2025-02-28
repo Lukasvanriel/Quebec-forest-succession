@@ -286,14 +286,14 @@ run_INLA <- function(data, formula, Nstates=9){
   
   ## run the model
   exp.surv <- joint(formSurv = formulas,
-                    basRisk = rep("exponentialsurv", length(formulas)), dataSurv = event.list,
+                    basRisk = rep("weibullsurv", length(formulas)), dataSurv = event.list,
                     control = list(config=TRUE))
 }
 
 mem.time_INLA <- function(d, f) {
   start_time <- Sys.time()
   mem_before <- mem_used()
-  model.output <- run_INLA(data = d, formula = "cov_Tmean + cov_CMI + cov_soil + cov_pert_class + cov_time_pert + cov_pert_sev + (1 | cov_frail)")
+  model.output <- run_INLA(data = d, formula = "cov_Tmean + cov_CMI + cov_soil + cov_pert_class + cov_time_pert + cov_pert_sev") # + (1 | cov_frail)
   mem_after <- mem_used()
   end_time <- Sys.time()
   
