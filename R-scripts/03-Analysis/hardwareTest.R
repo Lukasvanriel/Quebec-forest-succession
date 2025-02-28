@@ -286,14 +286,14 @@ run_INLA <- function(data, formula, Nstates=9){
   
   ## run the model
   exp.surv <- joint(formSurv = formulas,
-                    basRisk = rep("weibullsurv", length(formulas)), dataSurv = event.list,
+                    basRisk = rep("exponentialsurv", length(formulas)), dataSurv = event.list,
                     control = list(config=TRUE))
 }
 
-mem.time_INLA <- function(d) {
+mem.time_INLA <- function(d, f) {
   start_time <- Sys.time()
   mem_before <- mem_used()
-  model.output <- run_INLA(data = d, formula = "cov_Tmean + cov_pert_class")
+  model.output <- run_INLA(data = d, formula = "cov_Tmean + cov_CMI + cov_soil + cov_pert_class")
   mem_after <- mem_used()
   end_time <- Sys.time()
   
@@ -309,13 +309,13 @@ mem.time_INLA <- function(d) {
 
 #### Load data ####
 data <- read_rds(here("Data", "HardwareRequirements", paste0("HR_inla_", datasets, ".RDS")))
-mem.time_INLA(data[[2]])
+
+#mem.time_INLA(data[[2]])
 
 a <- bind_rows(lapply(data, mem.time_INLA))
 a
 
 #lapply(1:2, function(x) bind_rows(lapply(data, mem.time_INLA)))
-
 
 test1 <- peakRAM(a <- mem.time_INLA(data[[1]]))
 test1$Peak_RAM_Used_MiB
