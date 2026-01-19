@@ -21,7 +21,7 @@ PROGRESS_FILE <- file.path(OUTPUT_DIR, "progress_log.txt")
 CHECKPOINT_DIR <- file.path(OUTPUT_DIR, "checkpoints")
 
 # Processing parameters
-N_CORES <- 4            # Number of cores to use (adjust for your cluster)
+N_CORES <- 8            # Number of cores to use (adjust for your cluster)
 CHECKPOINT_INTERVAL <- 100  # Save checkpoint every N plots #10000
 SEED <- 42
 

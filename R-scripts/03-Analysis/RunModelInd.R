@@ -21,14 +21,14 @@ OUTPUT_DIR <- here("Data-Output", "INLA-realResults-IND")
 PROGRESS_FILE <- file.path(OUTPUT_DIR, "fitting_log_ind.txt")
 
 # Model parameters
-N_TRANSITIONS <- 400      # How many transitions to fit (top N by event count)
+N_TRANSITIONS <- 8      # How many transitions to fit (top N by event count)
 MIN_EVENTS <- 1000       # Minimum events required per transition
-INCLUDE_SOIL <- FALSE     # Include soil as covariate? (risky - many levels)
-INCLUDE_PERT <- FALSE     # Include perturbation as covariate?
+INCLUDE_SOIL <- T     # Include soil as covariate? (risky - many levels)
+INCLUDE_PERT <- T     # Include perturbation as covariate?
 
 # Parallel processing
 USE_PARALLEL <- TRUE
-N_CORES <- 4            # Adjust for your cluster
+N_CORES <- 8            # Adjust for your cluster
 
 # Create output directory
 dir.create(OUTPUT_DIR, showWarnings = FALSE, recursive = TRUE)
@@ -64,6 +64,47 @@ log_progress(sprintf("Dimensions: %d rows, %d columns",
                      nrow(model_data), ncol(model_data)))
 log_progress(sprintf("Unique plots: %d", length(unique(model_data$id))))
 log_progress(sprintf("Total transitions: %d", sum(model_data$status == 3)))
+
+# ==============================================================================
+# PREPARE COVARIATES
+# ==============================================================================
+
+log_progress("\n=== PREPARING COVARIATES ===")
+
+# Filter: Keep only no perturbation (0) or pest outbreak (3)
+n_before <- nrow(model_data)
+model_data <- model_data %>%
+  filter(cov_pert_class %in% c(0, 3))
+n_after <- nrow(model_data)
+
+log_progress(sprintf("Filtered perturbation data: %d → %d rows (%.1f%% retained)",
+                     n_before, n_after, 100 * n_after / n_before))
+
+# Create binary pest variable
+model_data$pert_binary <- ifelse(model_data$cov_pert_class == 3, 1, 0)
+log_progress(sprintf("Pest outbreak events: %d (%.2f%%)", 
+                     sum(model_data$pert_binary), 
+                     100 * mean(model_data$pert_binary)))
+
+# Create 3-level soil classification
+model_data$soil_class <- case_when(
+  model_data$cov_soil %in% c(0, 1, 2) ~ "Dry",
+  model_data$cov_soil %in% c(3, 4, 5, 6) ~ "Optimal",
+  model_data$cov_soil %in% c(7, 8, 9) ~ "Wet",
+  TRUE ~ NA_character_
+)
+
+# Set Optimal as reference level
+model_data$soil_class <- factor(model_data$soil_class, 
+                                levels = c("Optimal", "Dry", "Wet"))
+
+log_progress("Soil distribution:")
+soil_table <- table(model_data$soil_class, useNA = "ifany")
+for(level in names(soil_table)) {
+  log_progress(sprintf("  %s: %d (%.1f%%)", 
+                       level, soil_table[level], 
+                       100 * soil_table[level] / sum(soil_table)))
+}
 
 # ==============================================================================
 # SELECT TRANSITIONS TO FIT
@@ -116,17 +157,13 @@ if(is.data.table(model_data)) {
 }
 
 # Build covariate formula
-covariate_formula <- "cov_CMI_std + cov_Tmean_std"
+covariate_formula <- "cov_CMI_std + cov_Tmean_std + soil_class + pert_binary"
 
-if(INCLUDE_SOIL) {
-  covariate_formula <- paste0(covariate_formula, " + cov_soil")
-  log_progress("Including SOIL as covariate (WARNING: may cause convergence issues)")
-}
-
-if(INCLUDE_PERT) {
-  covariate_formula <- paste0(covariate_formula, " + cov_pert_class")
-  log_progress("Including PERTURBATION as covariate")
-}
+log_progress(sprintf("Formula: surv ~ %s", covariate_formula))
+log_progress("Covariates included:")
+log_progress("  - Climate: CMI (standardized), Temperature (standardized)")
+log_progress("  - Soil: 3-level (Dry/Optimal/Wet)")
+log_progress("  - Perturbation: Binary (Pest vs None)")
 
 log_progress(sprintf("Formula: surv ~ %s", covariate_formula))
 
@@ -156,8 +193,9 @@ fit_single_transition <- function(from_state, to_state, data,
     filter(from == from_state, to == to_state)
   
   # Remove rows with missing covariates
+  # Remove rows with missing covariates
   trans_data <- trans_data %>%
-    filter(!is.na(cov_CMI_std), !is.na(cov_Tmean_std))
+    filter(!is.na(cov_CMI_std), !is.na(cov_Tmean_std), !is.na(soil_class))
   
   n_events <- sum(trans_data$status == 3)
   n_censored <- sum(trans_data$status == 0)
@@ -243,6 +281,23 @@ fit_single_transition <- function(from_state, to_state, data,
     tmean_sd = fit$summary.fixed["cov_Tmean_std", "sd"],
     tmean_lower = fit$summary.fixed["cov_Tmean_std", "0.025quant"],
     tmean_upper = fit$summary.fixed["cov_Tmean_std", "0.975quant"],
+    
+    # Soil effects
+    soil_dry_effect = fit$summary.fixed["soil_classDry", "mean"],
+    soil_dry_sd = fit$summary.fixed["soil_classDry", "sd"],
+    soil_dry_lower = fit$summary.fixed["soil_classDry", "0.025quant"],
+    soil_dry_upper = fit$summary.fixed["soil_classDry", "0.975quant"],
+    
+    soil_wet_effect = fit$summary.fixed["soil_classWet", "mean"],
+    soil_wet_sd = fit$summary.fixed["soil_classWet", "sd"],
+    soil_wet_lower = fit$summary.fixed["soil_classWet", "0.025quant"],
+    soil_wet_upper = fit$summary.fixed["soil_classWet", "0.975quant"],
+    
+    # Pest effect
+    pest_effect = fit$summary.fixed["pert_binary", "mean"],
+    pest_sd = fit$summary.fixed["pert_binary", "sd"],
+    pest_lower = fit$summary.fixed["pert_binary", "0.025quant"],
+    pest_upper = fit$summary.fixed["pert_binary", "0.975quant"],
     
     # Model fit
     dic = fit$dic$dic,
@@ -409,6 +464,26 @@ results_table <- do.call(rbind, lapply(results_list, function(res) {
     Tmean_upper = res$tmean_upper,
     Tmean_sig = res$tmean_lower * res$tmean_upper > 0,
     
+    # Soil effects
+    Soil_Dry_effect = res$soil_dry_effect,
+    Soil_Dry_SD = res$soil_dry_sd,
+    Soil_Dry_lower = res$soil_dry_lower,
+    Soil_Dry_upper = res$soil_dry_upper,
+    Soil_Dry_sig = res$soil_dry_lower * res$soil_dry_upper > 0,
+    
+    Soil_Wet_effect = res$soil_wet_effect,
+    Soil_Wet_SD = res$soil_wet_sd,
+    Soil_Wet_lower = res$soil_wet_lower,
+    Soil_Wet_upper = res$soil_wet_upper,
+    Soil_Wet_sig = res$soil_wet_lower * res$soil_wet_upper > 0,
+    
+    # Pest effect
+    Pest_effect = res$pest_effect,
+    Pest_SD = res$pest_sd,
+    Pest_lower = res$pest_lower,
+    Pest_upper = res$pest_upper,
+    Pest_sig = res$pest_lower * res$pest_upper > 0,
+    
     # Model fit
     DIC = res$dic,
     WAIC = res$waic,
@@ -492,6 +567,19 @@ for(i in 1:nrow(top_tmean)) {
                        top_tmean$Tmean_effect[i],
                        sig_mark))
 }
+
+log_progress(sprintf("Significant Dry soil effects: %d / %d (%.1f%%)", 
+                     sum(results_table$Soil_Dry_sig), 
+                     nrow(results_table),
+                     100 * sum(results_table$Soil_Dry_sig) / nrow(results_table)))
+log_progress(sprintf("Significant Wet soil effects: %d / %d (%.1f%%)", 
+                     sum(results_table$Soil_Wet_sig), 
+                     nrow(results_table),
+                     100 * sum(results_table$Soil_Wet_sig) / nrow(results_table)))
+log_progress(sprintf("Significant Pest effects: %d / %d (%.1f%%)", 
+                     sum(results_table$Pest_sig), 
+                     nrow(results_table),
+                     100 * sum(results_table$Pest_sig) / nrow(results_table)))
 
 # ==============================================================================
 # FINISH
