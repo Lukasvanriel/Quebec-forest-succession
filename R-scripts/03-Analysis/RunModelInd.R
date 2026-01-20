@@ -369,15 +369,24 @@ if(USE_PARALLEL) {
   log_progress(sprintf("Using mclapply with %d cores...", N_CORES))
   
   results_list <- mclapply(1:nrow(transitions_to_fit), function(i) {
-    fit_single_transition(
-      from_state = transitions_to_fit$from[i],
-      to_state = transitions_to_fit$to[i],
-      data = model_data,
-      covariate_formula = covariate_formula,
-      transition_label = transitions_to_fit$transition[i],
-      output_dir = OUTPUT_DIR,
-      variant = 1
-    )
+    
+    # Extract the specific row so we don't pass the whole table to the function
+    row <- transitions_to_fit[i, ]
+    
+    # Wrap in try to capture the specific error
+    res <- try({
+      fit_single_transition(
+        from_state = row$from,
+        to_state   = row$to,
+        data       = model_data,  # data.table handles this efficiently
+        covariate_formula = covariate_formula,
+        transition_label  = row$transition,
+        output_dir        = OUTPUT_DIR,
+        variant           = 1
+      )
+    })
+    
+    return(res)
   }, mc.cores = N_CORES)
   
   # Check for parallel errors (crashes)
