@@ -56,24 +56,22 @@ log_progress("=== PROBABILITY CALCULATION STARTED ===")
 # ==============================================================================
 # LOAD FITTED MODELS
 # ==============================================================================
-
 log_progress("Loading fitted models...")
 
-# Load results table
-results_table <- read.csv(file.path(RESULTS_DIR, "model_results.csv"))
-log_progress(sprintf("Found %d fitted transitions", nrow(results_table)))
-
-# Load individual model objects
+# Load individual model files
 model_files <- list.files(RESULTS_DIR, pattern = "^fit_.*\\.rds$", full.names = TRUE)
 log_progress(sprintf("Found %d model files", length(model_files)))
 
-fitted_models <- list()
+# Create a mapping of transition labels to file paths
+# This avoids loading everything into RAM at once
+model_map <- list()
 for(file in model_files) {
+  # This converts "fit_1_to_6.rds" into "1_to_6"
   model_name <- gsub("fit_|\\.rds", "", basename(file))
-  fitted_models[[model_name]] <- readRDS(file)
+  model_map[[model_name]] <- file
 }
 
-log_progress("Models loaded successfully")
+log_progress("Model map created successfully")
 
 # ==============================================================================
 # DEFINE COVARIATE SCENARIOS
@@ -212,36 +210,39 @@ log_progress(sprintf("Calculating probabilities for %d scenarios in parallel..."
                      length(scenarios)))
 
 # Calculate probabilities by scenario (parallelizable)
-scenario_results <- mclapply(names(scenarios), function(scenario_name) {
+# Calculate probabilities by scenario (parallelizable)
+scenario_results <- mclapply(names(scenarios), function(scen_name) {
   
-  progress_update(sprintf("Processing scenario: %s", scenario_name))
+  progress_update(sprintf("Processing scenario: %s", scen_name))
+  scenario_vals <- scenarios[[scen_name]]
   
-  scenario <- scenarios[[scenario_name]]
-  
-  # Subset for this scenario
-  scenario_data <- prob_data[scenario_name == scenario_name]
+  # FIX: Use standard indexing instead of '..'
+  scenario_data <- prob_data[prob_data$scenario_name == scen_name, ]
   
   # Calculate for each row
   for(i in 1:nrow(scenario_data)) {
     
-    from_state <- scenario_data$from[i]
-    to_state <- scenario_data$to[i]
-    time_val <- scenario_data$time[i]
+    from_s <- scenario_data$from[i]
+    to_s   <- scenario_data$to[i]
+    t_val  <- scenario_data$time[i]
     
-    # Find model
-    model_name <- paste0(from_state, "_to_", to_state)
+    # Match the filename pattern "1_to_6"
+    m_name <- paste0(from_s, "_to_", to_s)
     
-    if(model_name %in% names(fitted_models)) {
-      model_result <- fitted_models[[model_name]]
-      result <- calculate_transition_prob(model_result, time_val, scenario)
+    if(m_name %in% names(model_map)) {
+      # Load model parameters ONLY when needed
+      model_res <- readRDS(model_map[[m_name]])
       
-      scenario_data$lambda[i] <- result$lambda
-      scenario_data$alpha[i] <- result$alpha
-      scenario_data$probability[i] <- result$cum_hazard
+      result <- calculate_transition_prob(model_res, t_val, scenario_vals)
+      
+      # Use indexing to save results
+      set(scenario_data, i, "lambda", result$lambda)
+      set(scenario_data, i, "alpha", result$alpha)
+      set(scenario_data, i, "cum_hazard", result$cum_hazard) # Note: changed 'probability' to 'cum_hazard'
     }
   }
   
-  progress_update(sprintf("Completed scenario: %s", scenario_name))
+  progress_update(sprintf("Completed scenario: %s", scen_name))
   return(scenario_data)
   
 }, mc.cores = min(N_CORES, length(scenarios)))
@@ -257,17 +258,18 @@ log_progress("Individual cumulative hazards calculated")
 
 log_progress("Converting to probabilities with competing risks...")
 
-# For each (scenario, time, from_state), calculate total hazard and probabilities
-# Use data.table for competing risks calculation
-prob_data[, `:=`(
-  total_cum_hazard = sum(cum_hazard, na.rm = TRUE),
-  survival_in_state = exp(-sum(cum_hazard, na.rm = TRUE))
-), by = .(scenario_name, time, from)]
+# 1. Calculate total hazard per state/time
+prob_data[, total_cum_hazard := sum(cum_hazard, na.rm = TRUE), 
+          by = .(scenario_name, time, from)]
 
+# 2. Calculate survival probability (staying in same state)
+prob_data[, survival_in_state := exp(-total_cum_hazard)]
+
+# 3. Apportion total exit probability (1 - survival) to specific transitions
 prob_data[, probability := (cum_hazard / total_cum_hazard) * (1 - survival_in_state)]
 
-# Replace NaN with 0 (when no transitions from a state)
-prob_data$probability[is.nan(prob_data$probability)] <- 0
+# Replace NaN with 0
+prob_data[is.nan(probability), probability := 0]
 
 # Add diagonal (probability of staying in same state)
 diagonal_probs <- prob_data %>%
