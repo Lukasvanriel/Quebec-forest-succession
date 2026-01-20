@@ -10,6 +10,7 @@ library(data.table)
 library(INLA)
 library(here)
 library(parallel)
+library(stringr)
 
 # ==============================================================================
 # CONFIGURATION
@@ -196,7 +197,7 @@ fit_single_transition <- function(from_state, to_state, data,
   # Convert to data.table if not already
   if(!is.data.table(data)) data <- as.data.table(data)
   
-  trans_data <- data[from == from_state & to == to_state & 
+  trans_data <- data[from == ..from_state & to == ..to_state & 
                        !is.na(cov_CMI_std) & !is.na(cov_Tmean_std) & !is.na(soil_class)]
   
   # Convert back to data.frame for INLA
@@ -327,11 +328,14 @@ fit_single_transition <- function(from_state, to_state, data,
     Alpha_SD = results$alpha_sd,
     CMI_effect = results$cmi_effect,
     CMI_SD = results$cmi_sd,
-    # Significance check: if the 95% CI doesn't cross zero
     CMI_sig = (results$cmi_lower * results$cmi_upper > 0), 
     Tmean_effect = results$tmean_effect,
     Tmean_SD = results$tmean_sd,
     Tmean_sig = (results$tmean_lower * results$tmean_upper > 0),
+    # ADD THESE THREE LINES:
+    Soil_Dry_sig = (results$soil_dry_lower * results$soil_dry_upper > 0),
+    Soil_Wet_sig = (results$soil_wet_lower * results$soil_wet_upper > 0),
+    Pest_sig = (results$pest_lower * results$pest_upper > 0),
     Convergence_OK = convergence_ok,
     stringsAsFactors = FALSE
   )
@@ -405,9 +409,9 @@ if(USE_PARALLEL) {
     
     if(!is.null(results_list[[i]])) {
       log_progress(sprintf("  Alpha = %.3f (95%% CI: %.3f - %.3f)", 
-                           results_list[[i]]$alpha,
-                           results_list[[i]]$alpha_lower,
-                           results_list[[i]]$alpha_upper))
+                           results_list[[i]]$Alpha,
+                           results_list[[i]]$Alpha_lower,
+                           results_list[[i]]$Alpha_upper))
       log_progress(sprintf("  CMI effect = %.3f (95%% CI: %.3f - %.3f)",
                            results_list[[i]]$cmi_effect,
                            results_list[[i]]$cmi_lower,
