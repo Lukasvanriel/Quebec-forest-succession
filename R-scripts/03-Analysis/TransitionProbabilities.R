@@ -9,6 +9,7 @@ library(data.table)
 library(here)
 library(gridExtra)
 library(viridis)
+library(parallel)
 
 # ==============================================================================
 # CONFIGURATION
