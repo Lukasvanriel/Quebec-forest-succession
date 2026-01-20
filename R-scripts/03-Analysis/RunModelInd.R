@@ -188,14 +188,19 @@ fit_single_transition <- function(from_state, to_state, data,
                                   output_dir,
                                   variant = 1) {
   
-  # Extract data for this transition
-  trans_data <- data %>%
-    filter(from == from_state, to == to_state)
+  # Log start
+  cat(sprintf("[%s] Starting: %s\n", 
+              format(Sys.time(), "%H:%M:%S"), 
+              transition_label))
   
-  # Remove rows with missing covariates
-  # Remove rows with missing covariates
-  trans_data <- trans_data %>%
-    filter(!is.na(cov_CMI_std), !is.na(cov_Tmean_std), !is.na(soil_class))
+  # Convert to data.table if not already
+  if(!is.data.table(data)) data <- as.data.table(data)
+  
+  trans_data <- data[from == from_state & to == to_state & 
+                       !is.na(cov_CMI_std) & !is.na(cov_Tmean_std) & !is.na(soil_class)]
+  
+  # Convert back to data.frame for INLA
+  trans_data <- as.data.frame(trans_data)
   
   n_events <- sum(trans_data$status == 3)
   n_censored <- sum(trans_data$status == 0)
@@ -312,6 +317,17 @@ fit_single_transition <- function(from_state, to_state, data,
           file.path(output_dir, sprintf("fit_%s.rds", 
                                         gsub("→", "_to_", transition_label))))
   
+  # Save individual model
+  saveRDS(results, 
+          file.path(output_dir, sprintf("fit_%s.rds", 
+                                        gsub("→", "_to_", transition_label))))
+  
+  # Log completion
+  cat(sprintf("[%s] Completed: %s (%.1f min)\n",
+              format(Sys.time(), "%H:%M:%S"),
+              transition_label,
+              as.numeric(difftime(Sys.time(), start_time, units = "mins"))))
+  
   return(results)
 }
 
@@ -331,17 +347,9 @@ log_progress(sprintf("Started: %s", Sys.time()))
 start_fit <- Sys.time()
 
 if(USE_PARALLEL) {
-  log_progress(sprintf("Initializing parallel cluster with %d cores...", N_CORES))
+  log_progress(sprintf("Using mclapply (fork-based) with %d cores...", N_CORES))
   
-  cl <- makeCluster(N_CORES)
-  clusterExport(cl, c("model_data", "covariate_formula", "OUTPUT_DIR",
-                      "fit_single_transition", "transitions_to_fit"))
-  clusterEvalQ(cl, {
-    library(INLA)
-    library(tidyverse)
-  })
-  
-  results_list <- parLapply(cl, 1:nrow(transitions_to_fit), function(i) {
+  results_list <- mclapply(1:nrow(transitions_to_fit), function(i) {
     fit_single_transition(
       from_state = transitions_to_fit$from[i],
       to_state = transitions_to_fit$to[i],
@@ -351,9 +359,12 @@ if(USE_PARALLEL) {
       output_dir = OUTPUT_DIR,
       variant = 1
     )
-  })
+  }, mc.cores = N_CORES)
   
-  stopCluster(cl)
+  # Check for errors
+  if(any(sapply(results_list, function(x) inherits(x, "try-error")))) {
+    log_progress("ERROR: One or more models failed to fit")
+  }
   
 } else {
   log_progress("Fitting transitions sequentially...")

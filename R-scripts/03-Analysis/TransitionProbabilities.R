@@ -23,8 +23,21 @@ PROGRESS_FILE <- file.path(OUTPUT_DIR, "probability_calculation_log.txt")
 TIME_POINTS <- c(5, 10, 15, 20)  # Years
 DEFAULT_TIME <- 10  # Default time for tables/matrices
 
+# Parallel processing
+N_CORES <- 8  # Number of cores for parallel probability calculation
+
 # Create output directory
 dir.create(OUTPUT_DIR, showWarnings = FALSE, recursive = TRUE)
+
+# Progress file for detailed monitoring
+PROB_PROGRESS <- file.path(OUTPUT_DIR, "calculation_progress.txt")
+cat("", file = PROB_PROGRESS)
+
+progress_update <- function(msg) {
+  cat(sprintf("[%s] %s\n", format(Sys.time(), "%H:%M:%S"), msg), 
+      file = PROB_PROGRESS, append = TRUE)
+  cat(sprintf("[%s] %s\n", format(Sys.time(), "%H:%M:%S"), msg))
+}
 
 # ==============================================================================
 # PROGRESS LOGGING
@@ -185,50 +198,56 @@ all_states <- sort(unique(c(results_table$From, results_table$To)))
 log_progress(sprintf("States: %s", paste(all_states, collapse = ", ")))
 
 # Create comprehensive probability table
-prob_data <- expand.grid(
+# Use data.table for efficiency
+prob_data <- CJ(
   scenario_name = names(scenarios),
   time = TIME_POINTS,
   from = all_states,
-  to = all_states,
-  stringsAsFactors = FALSE
-) %>%
-  filter(from != to)  # Remove diagonal
+  to = all_states
+)
+prob_data <- prob_data[from != to]  # Remove diagonal
 
 # Calculate probabilities
-log_progress(sprintf("Calculating %d probability values...", nrow(prob_data)))
+log_progress(sprintf("Calculating probabilities for %d scenarios in parallel...", 
+                     length(scenarios)))
 
-prob_data$probability <- NA
-prob_data$lambda <- NA
-prob_data$alpha <- NA
-
-for(i in 1:nrow(prob_data)) {
+# Calculate probabilities by scenario (parallelizable)
+scenario_results <- mclapply(names(scenarios), function(scenario_name) {
   
-  if(i %% 1000 == 0) {
-    log_progress(sprintf("  Progress: %d/%d (%.1f%%)", 
-                         i, nrow(prob_data), 100*i/nrow(prob_data)))
+  progress_update(sprintf("Processing scenario: %s", scenario_name))
+  
+  scenario <- scenarios[[scenario_name]]
+  
+  # Subset for this scenario
+  scenario_data <- prob_data[scenario_name == scenario_name]
+  
+  # Calculate for each row
+  for(i in 1:nrow(scenario_data)) {
+    
+    from_state <- scenario_data$from[i]
+    to_state <- scenario_data$to[i]
+    time_val <- scenario_data$time[i]
+    
+    # Find model
+    model_name <- paste0(from_state, "_to_", to_state)
+    
+    if(model_name %in% names(fitted_models)) {
+      model_result <- fitted_models[[model_name]]
+      result <- calculate_transition_prob(model_result, time_val, scenario)
+      
+      scenario_data$lambda[i] <- result$lambda
+      scenario_data$alpha[i] <- result$alpha
+      scenario_data$probability[i] <- result$cum_hazard
+    }
   }
   
-  from_state <- prob_data$from[i]
-  to_state <- prob_data$to[i]
-  scenario_name <- prob_data$scenario_name[i]
-  time <- prob_data$time[i]
+  progress_update(sprintf("Completed scenario: %s", scenario_name))
+  return(scenario_data)
   
-  # Find model for this transition
-  model_name <- paste0(from_state, "_to_", to_state)
-  
-  if(model_name %in% names(fitted_models)) {
-    model_result <- fitted_models[[model_name]]
-    scenario <- scenarios[[scenario_name]]
-    
-    # Calculate cumulative hazard for this specific transition
-    result <- calculate_transition_prob(model_result, time, scenario)
-    
-    prob_data$lambda[i] <- result$lambda
-    prob_data$alpha[i] <- result$alpha
-    # Store cumulative hazard for now, will convert to probability below
-    prob_data$probability[i] <- result$cum_hazard
-  }
-}
+}, mc.cores = min(N_CORES, length(scenarios)))
+
+# Combine all scenarios
+prob_data <- rbindlist(scenario_results)
 
 log_progress("Individual cumulative hazards calculated")
 
@@ -239,15 +258,13 @@ log_progress("Individual cumulative hazards calculated")
 log_progress("Converting to probabilities with competing risks...")
 
 # For each (scenario, time, from_state), calculate total hazard and probabilities
-prob_data <- prob_data %>%
-  group_by(scenario_name, time, from) %>%
-  mutate(
-    total_cum_hazard = sum(probability, na.rm = TRUE),
-    survival_in_state = exp(-total_cum_hazard),
-    # Probability = proportion of hazard × probability of leaving
-    probability = (probability / total_cum_hazard) * (1 - survival_in_state)
-  ) %>%
-  ungroup()
+# Use data.table for competing risks calculation
+prob_data[, `:=`(
+  total_cum_hazard = sum(cum_hazard, na.rm = TRUE),
+  survival_in_state = exp(-sum(cum_hazard, na.rm = TRUE))
+), by = .(scenario_name, time, from)]
+
+prob_data[, probability := (cum_hazard / total_cum_hazard) * (1 - survival_in_state)]
 
 # Replace NaN with 0 (when no transitions from a state)
 prob_data$probability[is.nan(prob_data$probability)] <- 0
@@ -273,6 +290,17 @@ prob_data <- bind_rows(
 )
 
 log_progress("Probabilities calculated successfully")
+
+# SAVE CHECKPOINT BEFORE VISUALIZATION
+log_progress("Saving probability data checkpoint...")
+saveRDS(prob_data, file.path(OUTPUT_DIR, "prob_data_checkpoint.rds"))
+saveRDS(list(
+  prob_data = prob_data,
+  scenarios = scenarios,
+  fitted_models = names(fitted_models),
+  timestamp = Sys.time()
+), file.path(OUTPUT_DIR, "full_checkpoint.rds"))
+log_progress("Checkpoint saved - visualization can be re-run from here if needed")
 
 # ==============================================================================
 # CREATE PROBABILITY MATRICES
