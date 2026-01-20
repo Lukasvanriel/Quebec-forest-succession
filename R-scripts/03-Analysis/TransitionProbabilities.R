@@ -191,11 +191,10 @@ calculate_transition_prob <- function(model_result, time, scenario) {
 
 log_progress("\n=== CALCULATING PROBABILITIES (OPTIMIZED) ===")
 
-# 1. PRE-LOAD PARAMETERS (The Secret to Speed)
-log_progress("Pre-loading model parameters to avoid disk bottleneck...")
+# 1. PRE-LOAD PARAMETERS
+log_progress("Pre-loading model parameters...")
 coef_list <- lapply(names(model_map), function(m_name) {
   res <- readRDS(model_map[[m_name]])
-  # Extract only the numbers we need
   data.table(
     transition = m_name,
     alpha      = res$alpha,
@@ -208,45 +207,50 @@ coef_list <- lapply(names(model_map), function(m_name) {
   )
 })
 coef_dt <- rbindlist(coef_list)
-setkey(coef_dt, transition) # Enables instant searching
+setkey(coef_dt, transition)
+
+# --- CRITICAL FIX: Ensure prob_data exists and is visible ---
+if(!exists("prob_data")) {
+  stop("prob_data was not created! Check the 'Create comprehensive probability table' section.")
+}
 
 # 2. RUN SCENARIOS IN PARALLEL
-scenario_results <- mclapply(names(scenarios), function(scen_name) {
+# We'll pass objects explicitly to be safe
+all_scen_names <- names(scenarios)
+
+scenario_results <- mclapply(all_scen_names, function(scen_name) {
   
   progress_update(sprintf("Processing scenario: %s", scen_name))
   
-  # Use a local copy of the scenario values
-  scenario_vals <- scenarios[[scen_name]]
+  # Local variables for this core
+  current_scen_vals <- scenarios[[scen_name]]
   
-  # Subset prob_data for THIS scenario specifically
-  # Use data.table syntax for a local copy
+  # Create a local copy of the relevant rows
+  # Using standard data.table subsetting
   scen_dt <- prob_data[scenario_name == scen_name]
   
-  # Loop through transitions for this scenario
+  if(nrow(scen_dt) == 0) return(NULL)
+  
   for(i in 1:nrow(scen_dt)) {
-    f_s <- scen_dt$from[i]
-    t_s <- scen_dt$to[i]
-    m_name <- paste0(f_s, "_to_", t_s)
+    m_name <- paste0(scen_dt$from[i], "_to_", scen_dt$to[i])
     
-    # Grab params from our pre-loaded table
+    # Grab params
     m_coefs <- coef_dt[transition == m_name]
     
     if(nrow(m_coefs) > 0) {
-      # Calculate Linear Predictor
+      # Math
       lp <- m_coefs$beta0 + 
-        (scenario_vals$CMI * m_coefs$cmi_b) + 
-        (scenario_vals$Tmean * m_coefs$tmean_b) +
-        (scenario_vals$pest * m_coefs$pest_b)
+        (current_scen_vals$CMI * m_coefs$cmi_b) + 
+        (current_scen_vals$Tmean * m_coefs$tmean_b) +
+        (current_scen_vals$pest * m_coefs$pest_b)
       
-      if(scenario_vals$soil == "Dry") lp <- lp + m_coefs$soil_dry_b
-      if(scenario_vals$soil == "Wet") lp <- lp + m_coefs$soil_wet_b
+      if(current_scen_vals$soil == "Dry") lp <- lp + m_coefs$soil_dry_b
+      if(current_scen_vals$soil == "Wet") lp <- lp + m_coefs$soil_wet_b
       
-      # Calculate Lambda and Cumulative Hazard
       l_val <- exp(lp)
       t_val <- scen_dt$time[i]
       a_val <- m_coefs$alpha
       
-      # Update the local data table
       set(scen_dt, i, "lambda", l_val)
       set(scen_dt, i, "alpha", a_val)
       set(scen_dt, i, "cum_hazard", (l_val * t_val)^a_val)
@@ -258,8 +262,9 @@ scenario_results <- mclapply(names(scenarios), function(scen_name) {
   
 }, mc.cores = N_CORES)
 
+# Final check before binding
+scenario_results <- scenario_results[!sapply(scenario_results, is.null)]
 prob_data <- rbindlist(scenario_results)
-log_progress("All probabilities calculated using in-memory parameters.")
 
 # ==============================================================================
 # CONVERT TO PROBABILITIES (ACCOUNTING FOR COMPETING RISKS)
