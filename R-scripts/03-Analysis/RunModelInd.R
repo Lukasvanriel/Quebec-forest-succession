@@ -197,8 +197,12 @@ fit_single_transition <- function(from_state, to_state, data,
   # Convert to data.table if not already
   if(!is.data.table(data)) data <- as.data.table(data)
   
-  trans_data <- data[from == ..from_state & to == ..to_state & 
-                       !is.na(cov_CMI_std) & !is.na(cov_Tmean_std) & !is.na(soil_class)]
+  # Filter using standard R logical indexing which works on all types
+  trans_data <- data[data$from == from_state & 
+                       data$to == to_state & 
+                       !is.na(data$cov_CMI_std) & 
+                       !is.na(data$cov_Tmean_std) & 
+                       !is.na(data$soil_class), ]
   
   # Convert back to data.frame for INLA
   trans_data <- as.data.frame(trans_data)
