@@ -187,8 +187,32 @@ calculate_transition_prob <- function(model_result, time, scenario) {
 }
 
 # ==============================================================================
-# CALCULATE PROBABILITIES FOR ALL TRANSITIONS AND SCENARIOS
+# CREATE THE PROBABILITY GRID (The "Missing" Step)
 # ==============================================================================
+log_progress("Creating probability grid...")
+
+# We need to reconstruct the transition list from the map
+results_table <- data.table(
+  Transition = names(model_map),
+  From = as.numeric(sub("_to_.*", "", names(model_map))),
+  To = as.numeric(sub(".*_to_", "", names(model_map)))
+)
+
+all_states <- sort(unique(c(results_table$From, results_table$To)))
+
+# Create the master table structure
+prob_data <- CJ(
+  scenario_name = names(scenarios),
+  time = TIME_POINTS,
+  from = all_states,
+  to = all_states
+)
+
+# Remove 'same-to-same' transitions and initialize numeric columns
+prob_data <- prob_data[from != to]
+prob_data[, `:=`(lambda = as.numeric(0), alpha = as.numeric(0), cum_hazard = as.numeric(0))]
+
+log_progress(sprintf("Grid created with %d rows.", nrow(prob_data)))
 
 log_progress("\n=== CALCULATING PROBABILITIES (OPTIMIZED) ===")
 
@@ -228,7 +252,7 @@ scenario_results <- mclapply(all_scen_names, function(scen_name) {
   
   # Create a local copy of the relevant rows
   # Using standard data.table subsetting
-  scen_dt <- prob_data[scenario_name == scen_name]
+  scen_dt <- copy(prob_data[scenario_name == scen_name])
   
   if(nrow(scen_dt) == 0) return(NULL)
   
@@ -401,7 +425,7 @@ for(trans_group in names(key_transitions)) {
   transitions <- key_transitions[[trans_group]]
   
   plot_data <- prob_data %>%
-    mutate(transition = paste0(from, "→", to)) %>%
+    mutate(transition = paste0(from, "_to_", to)) %>%
     filter(transition %in% transitions) %>%
     left_join(
       tibble(scenario_name = names(scenarios),
