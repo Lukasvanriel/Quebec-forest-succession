@@ -191,7 +191,25 @@ calculate_transition_prob <- function(model_result, time, scenario) {
 
 log_progress("\n=== CALCULATING PROBABILITIES ===")
 
-results_table <- read.csv(file.path(RESULTS_DIR, "model_results.csv"))
+# --- RECONSTRUCT RESULTS TABLE FROM DISK (Since model_results.csv was missing) ---
+log_progress("Checking for model results table...")
+results_path <- file.path(RESULTS_DIR, "model_results.csv")
+
+if(!file.exists(results_path)) {
+  log_progress("model_results.csv not found. Reconstructing from .rds files...")
+  found_files <- list.files(RESULTS_DIR, pattern = "^fit_.*\\.rds$")
+  
+  if(length(found_files) == 0) stop("No .rds files found in RESULTS_DIR!")
+  
+  results_table <- data.table(
+    From = as.numeric(gsub("fit_([0-9]+)_to_[0-9]+\\.rds", "\\1", found_files)),
+    To = as.numeric(gsub("fit_[0-9]+_to_([0-9]+)\\.rds", "\\1", found_files)),
+    File = found_files
+  )
+  fwrite(results_table, results_path)
+} else {
+  results_table <- fread(results_path)
+}
 
 # Get all unique states
 all_states <- sort(unique(c(results_table$From, results_table$To)))
@@ -207,6 +225,7 @@ prob_data <- CJ(
 )
 prob_data <- prob_data[from != to]  # Remove diagonal
 
+# Initialize columns so 'set()' works inside parallel loop
 prob_data[, `:=`(lambda = 0, alpha = 0, cum_hazard = 0)]
 
 # Calculate probabilities
@@ -301,7 +320,7 @@ saveRDS(prob_data, file.path(OUTPUT_DIR, "prob_data_checkpoint.rds"))
 saveRDS(list(
   prob_data = prob_data,
   scenarios = scenarios,
-  fitted_models = names(fitted_models),
+  fitted_models = names(model_map), # Changed from fitted_models to names(model_map)
   timestamp = Sys.time()
 ), file.path(OUTPUT_DIR, "full_checkpoint.rds"))
 log_progress("Checkpoint saved - visualization can be re-run from here if needed")
@@ -355,16 +374,16 @@ log_progress("\n=== CREATING COMPARISON TABLES ===")
 
 # Key transitions for SBW analysis
 key_transitions <- list(
-  "Balsam Fir mortality" = c("6→7", "6→1", "6→2", "6→5"),
-  "Spruce mortality" = c("7→6", "7→1", "7→2", "7→5"),
-  "Pioneer to mature" = c("1→6", "2→6", "1→7", "2→7"),
-  "Regeneration to BF/Spruce" = c("5→6", "5→7")
+  "Balsam Fir mortality" = c("6_to_7", "6_to_1", "6_to_2", "6_to_5"),
+  "Spruce mortality" = c("7_to_6", "7_to_1", "7_to_2", "7_to_5"),
+  "Pioneer to mature" = c("1_to_6", "2_to_6", "1_to_7", "2_to_7"),
+  "Regeneration to BF/Spruce" = c("5_to_6", "5_to_7")
 )
 
 # Create comparison table for key transitions
 comparison_table <- prob_data %>%
   filter(time == DEFAULT_TIME) %>%
-  mutate(transition = paste0(from, "→", to)) %>%
+  mutate(transition = paste0(from, "_to_", to)) %>%
   filter(transition %in% unlist(key_transitions)) %>%
   select(scenario_name, transition, probability) %>%
   pivot_wider(names_from = scenario_name, values_from = probability)
