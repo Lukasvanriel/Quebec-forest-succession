@@ -189,90 +189,64 @@ calculate_transition_prob <- function(model_result, time, scenario) {
 # CALCULATE PROBABILITIES FOR ALL TRANSITIONS AND SCENARIOS
 # ==============================================================================
 
-log_progress("\n=== CALCULATING PROBABILITIES ===")
+log_progress("\n=== CALCULATING PROBABILITIES (OPTIMIZED) ===")
 
-# --- RECONSTRUCT RESULTS TABLE FROM DISK (Since model_results.csv was missing) ---
-log_progress("Checking for model results table...")
-results_path <- file.path(RESULTS_DIR, "model_results.csv")
-
-if(!file.exists(results_path)) {
-  log_progress("model_results.csv not found. Reconstructing from .rds files...")
-  found_files <- list.files(RESULTS_DIR, pattern = "^fit_.*\\.rds$")
-  
-  if(length(found_files) == 0) stop("No .rds files found in RESULTS_DIR!")
-  
-  results_table <- data.table(
-    From = as.numeric(gsub("fit_([0-9]+)_to_[0-9]+\\.rds", "\\1", found_files)),
-    To = as.numeric(gsub("fit_[0-9]+_to_([0-9]+)\\.rds", "\\1", found_files)),
-    File = found_files
+# 1. PRE-LOAD PARAMETERS (The Secret to Speed)
+log_progress("Pre-loading model parameters to avoid disk bottleneck...")
+coef_list <- lapply(names(model_map), function(m_name) {
+  res <- readRDS(model_map[[m_name]])
+  # Extract only the numbers we need
+  data.table(
+    transition = m_name,
+    alpha      = res$alpha,
+    beta0      = res$beta0,
+    cmi_b      = res$cmi_effect,
+    tmean_b    = res$tmean_effect,
+    soil_dry_b = res$soil_dry_effect,
+    soil_wet_b = res$soil_wet_effect,
+    pest_b     = res$pest_effect
   )
-  fwrite(results_table, results_path)
-} else {
-  results_table <- fread(results_path)
-}
+})
+coef_dt <- rbindlist(coef_list)
+setkey(coef_dt, transition) # Enables instant searching
 
-# Get all unique states
-all_states <- sort(unique(c(results_table$From, results_table$To)))
-log_progress(sprintf("States: %s", paste(all_states, collapse = ", ")))
-
-# Create comprehensive probability table
-# Use data.table for efficiency
-prob_data <- CJ(
-  scenario_name = names(scenarios),
-  time = TIME_POINTS,
-  from = all_states,
-  to = all_states
-)
-prob_data <- prob_data[from != to]  # Remove diagonal
-
-# Initialize columns so 'set()' works inside parallel loop
-prob_data[, `:=`(lambda = 0, alpha = 0, cum_hazard = 0)]
-
-# Calculate probabilities
-log_progress(sprintf("Calculating probabilities for %d scenarios in parallel...", 
-                     length(scenarios)))
-
-# Calculate probabilities by scenario (parallelizable)
+# 2. RUN SCENARIOS
+# We use the pre-loaded coef_dt instead of reading files inside the loop
 scenario_results <- mclapply(names(scenarios), function(scen_name) {
   
   progress_update(sprintf("Processing scenario: %s", scen_name))
   scenario_vals <- scenarios[[scen_name]]
-  
-  # FIX: Use standard indexing instead of '..'
   scenario_data <- prob_data[prob_data$scenario_name == scen_name, ]
   
-  # Calculate for each row
   for(i in 1:nrow(scenario_data)) {
+    m_name <- paste0(scenario_data$from[i], "_to_", scenario_data$to[i])
     
-    from_s <- scenario_data$from[i]
-    to_s   <- scenario_data$to[i]
-    t_val  <- scenario_data$time[i]
+    # Grab params from RAM (instant)
+    m_coefs <- coef_dt[transition == m_name]
     
-    # Match the filename pattern "1_to_6"
-    m_name <- paste0(from_s, "_to_", to_s)
-    
-    if(m_name %in% names(model_map)) {
-      # Load model parameters ONLY when needed
-      model_res <- readRDS(model_map[[m_name]])
+    if(nrow(m_coefs) > 0) {
+      # Calculate linear predictor
+      lp <- m_coefs$beta0 + 
+        (scenario_vals$CMI * m_coefs$cmi_b) + 
+        (scenario_vals$Tmean * m_coefs$tmean_b) +
+        (scenario_vals$pest * m_coefs$pest_b)
       
-      result <- calculate_transition_prob(model_res, t_val, scenario_vals)
+      if(scenario_vals$soil == "Dry") lp <- lp + m_coefs$soil_dry_b
+      if(scenario_vals$soil == "Wet") lp <- lp + m_coefs$soil_wet_b
       
-      # Use indexing to save results
-      set(scenario_data, i, "lambda", result$lambda)
-      set(scenario_data, i, "alpha", result$alpha)
-      set(scenario_data, i, "cum_hazard", result$cum_hazard) # Note: changed 'probability' to 'cum_hazard'
+      lambda <- exp(lp)
+      set(scenario_data, i, "lambda", lambda)
+      set(scenario_data, i, "alpha", m_coefs$alpha)
+      set(scenario_data, i, "cum_hazard", (lambda * scenario_data$time[i])^m_coefs$alpha)
     }
   }
   
   progress_update(sprintf("Completed scenario: %s", scen_name))
   return(scenario_data)
-  
-}, mc.cores = min(N_CORES, length(scenarios)))
+}, mc.cores = N_CORES)
 
-# Combine all scenarios
 prob_data <- rbindlist(scenario_results)
-
-log_progress("Individual cumulative hazards calculated")
+log_progress("All probabilities calculated using in-memory parameters.")
 
 # ==============================================================================
 # CONVERT TO PROBABILITIES (ACCOUNTING FOR COMPETING RISKS)
