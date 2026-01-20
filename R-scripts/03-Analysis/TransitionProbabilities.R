@@ -191,6 +191,8 @@ calculate_transition_prob <- function(model_result, time, scenario) {
 
 log_progress("\n=== CALCULATING PROBABILITIES ===")
 
+results_table <- read.csv(file.path(RESULTS_DIR, "model_results.csv"))
+
 # Get all unique states
 all_states <- sort(unique(c(results_table$From, results_table$To)))
 log_progress(sprintf("States: %s", paste(all_states, collapse = ", ")))
@@ -205,11 +207,12 @@ prob_data <- CJ(
 )
 prob_data <- prob_data[from != to]  # Remove diagonal
 
+prob_data[, `:=`(lambda = 0, alpha = 0, cum_hazard = 0)]
+
 # Calculate probabilities
 log_progress(sprintf("Calculating probabilities for %d scenarios in parallel...", 
                      length(scenarios)))
 
-# Calculate probabilities by scenario (parallelizable)
 # Calculate probabilities by scenario (parallelizable)
 scenario_results <- mclapply(names(scenarios), function(scen_name) {
   
@@ -255,7 +258,6 @@ log_progress("Individual cumulative hazards calculated")
 # ==============================================================================
 # CONVERT TO PROBABILITIES (ACCOUNTING FOR COMPETING RISKS)
 # ==============================================================================
-
 log_progress("Converting to probabilities with competing risks...")
 
 # 1. Calculate total hazard per state/time
