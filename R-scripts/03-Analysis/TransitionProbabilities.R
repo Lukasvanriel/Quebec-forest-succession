@@ -24,7 +24,7 @@ TIME_POINTS <- c(5, 10, 15, 20)  # Years
 DEFAULT_TIME <- 10  # Default time for tables/matrices
 
 # Parallel processing
-N_CORES <- 8  # Number of cores for parallel probability calculation
+N_CORES <- 1  # Number of cores for parallel probability calculation
 
 # Create output directory
 dir.create(OUTPUT_DIR, showWarnings = FALSE, recursive = TRUE)
@@ -210,22 +210,29 @@ coef_list <- lapply(names(model_map), function(m_name) {
 coef_dt <- rbindlist(coef_list)
 setkey(coef_dt, transition) # Enables instant searching
 
-# 2. RUN SCENARIOS
-# We use the pre-loaded coef_dt instead of reading files inside the loop
+# 2. RUN SCENARIOS IN PARALLEL
 scenario_results <- mclapply(names(scenarios), function(scen_name) {
   
   progress_update(sprintf("Processing scenario: %s", scen_name))
-  scenario_vals <- scenarios[[scen_name]]
-  scenario_data <- prob_data[prob_data$scenario_name == scen_name, ]
   
-  for(i in 1:nrow(scenario_data)) {
-    m_name <- paste0(scenario_data$from[i], "_to_", scenario_data$to[i])
+  # Use a local copy of the scenario values
+  scenario_vals <- scenarios[[scen_name]]
+  
+  # Subset prob_data for THIS scenario specifically
+  # Use data.table syntax for a local copy
+  scen_dt <- prob_data[scenario_name == scen_name]
+  
+  # Loop through transitions for this scenario
+  for(i in 1:nrow(scen_dt)) {
+    f_s <- scen_dt$from[i]
+    t_s <- scen_dt$to[i]
+    m_name <- paste0(f_s, "_to_", t_s)
     
-    # Grab params from RAM (instant)
+    # Grab params from our pre-loaded table
     m_coefs <- coef_dt[transition == m_name]
     
     if(nrow(m_coefs) > 0) {
-      # Calculate linear predictor
+      # Calculate Linear Predictor
       lp <- m_coefs$beta0 + 
         (scenario_vals$CMI * m_coefs$cmi_b) + 
         (scenario_vals$Tmean * m_coefs$tmean_b) +
@@ -234,15 +241,21 @@ scenario_results <- mclapply(names(scenarios), function(scen_name) {
       if(scenario_vals$soil == "Dry") lp <- lp + m_coefs$soil_dry_b
       if(scenario_vals$soil == "Wet") lp <- lp + m_coefs$soil_wet_b
       
-      lambda <- exp(lp)
-      set(scenario_data, i, "lambda", lambda)
-      set(scenario_data, i, "alpha", m_coefs$alpha)
-      set(scenario_data, i, "cum_hazard", (lambda * scenario_data$time[i])^m_coefs$alpha)
+      # Calculate Lambda and Cumulative Hazard
+      l_val <- exp(lp)
+      t_val <- scen_dt$time[i]
+      a_val <- m_coefs$alpha
+      
+      # Update the local data table
+      set(scen_dt, i, "lambda", l_val)
+      set(scen_dt, i, "alpha", a_val)
+      set(scen_dt, i, "cum_hazard", (l_val * t_val)^a_val)
     }
   }
   
   progress_update(sprintf("Completed scenario: %s", scen_name))
-  return(scenario_data)
+  return(scen_dt)
+  
 }, mc.cores = N_CORES)
 
 prob_data <- rbindlist(scenario_results)
