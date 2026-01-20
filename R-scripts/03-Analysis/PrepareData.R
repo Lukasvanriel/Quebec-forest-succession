@@ -50,7 +50,9 @@ log_progress(sprintf("Using %d cores", N_CORES))
 # ==============================================================================
 
 log_progress("Loading raw data...")
-data_raw <- read.csv(DATA_PATH)[,-1]
+data_raw <- fread(DATA_PATH)
+# Remove first column if it's an index
+if(colnames(data_raw)[1] == "V1") data_raw[, V1 := NULL]
 log_progress(sprintf("Loaded %d observations with %d columns", 
                      nrow(data_raw), ncol(data_raw)))
 
@@ -286,45 +288,91 @@ log_progress("Launching parallel workers...")
 
 start_time <- Sys.time()
 
-# Set up cluster
-cl <- makeCluster(N_CORES)
+# Determine if we can use mclapply (Unix-like systems)
+use_mclapply <- .Platform$OS.type == "unix"
 
-# Export necessary objects to workers
-clusterExport(cl, c("data_clean", "TT", "states_remaining", 
-                    "reconstruct_plot_methodB_fast", "OUTPUT_DIR",
-                    "process_chunk", "chunks"))
-
-# Load required packages on workers
-clusterEvalQ(cl, {
-  library(data.table)
-})
-
-# Process all chunks in parallel
-results_all <- parLapply(cl, seq_along(chunks), function(i) {
-  process_chunk(chunks[[i]], i, length(chunks))
-})
-
-# Stop cluster
-stopCluster(cl)
+if(use_mclapply) {
+  log_progress(sprintf("Using mclapply (fork-based parallelization) with %d cores", N_CORES))
+  
+  # Process chunks and save to disk immediately
+  chunk_files <- mclapply(seq_along(chunks), function(i) {
+    
+    # Run calculation
+    chunk_result <- process_chunk(chunks[[i]], i, length(chunks))
+    
+    # Save to checkpoint directory
+    checkpoint_file <- file.path(CHECKPOINT_DIR, sprintf("chunk_%03d_result.rds", i))
+    saveRDS(chunk_result, checkpoint_file, compress = TRUE)
+    
+    # Clean up worker memory
+    rm(chunk_result)
+    gc()
+    
+    return(checkpoint_file)
+  }, mc.cores = N_CORES)
+  
+  # Check for errors
+  if(any(sapply(chunk_files, function(x) inherits(x, "try-error")))) {
+    log_progress("ERROR: One or more parallel workers failed")
+    quit(status = 1)
+  }
+  
+} else {
+  log_progress(sprintf("Using makeCluster (socket-based) with %d cores", N_CORES))
+  
+  # Set up cluster
+  cl <- makeCluster(N_CORES)
+  
+  # Export necessary objects
+  clusterExport(cl, c("data_clean", "TT", "states_remaining", 
+                      "reconstruct_plot_methodB_fast", "OUTPUT_DIR",
+                      "CHECKPOINT_DIR", "process_chunk", "chunks"))
+  
+  # Load packages on workers
+  clusterEvalQ(cl, {
+    library(data.table)
+  })
+  
+  # Process chunks and save to disk immediately
+  chunk_files <- parLapply(cl, seq_along(chunks), function(i) {
+    
+    # Run calculation
+    chunk_result <- process_chunk(chunks[[i]], i, length(chunks))
+    
+    # Save to checkpoint directory
+    checkpoint_file <- file.path(CHECKPOINT_DIR, sprintf("chunk_%03d_result.rds", i))
+    saveRDS(chunk_result, checkpoint_file, compress = TRUE)
+    
+    # Clean up worker memory
+    rm(chunk_result)
+    gc()
+    
+    return(checkpoint_file)
+  })
+  
+  stopCluster(cl)
+}
 
 end_time <- Sys.time()
 elapsed <- as.numeric(difftime(end_time, start_time, units = "mins"))
 
 log_progress(sprintf("Parallel processing complete! Time: %.1f minutes", elapsed))
+log_progress(sprintf("All chunks saved to: %s", CHECKPOINT_DIR))
 
 # ==============================================================================
-# COMBINE RESULTS
+# COMBINE RESULTS SEQUENTIALLY
 # ==============================================================================
 
-log_progress("Combining results from all chunks...")
-model_data <- rbindlist(results_all, use.names = TRUE, fill = TRUE)
+log_progress("Combining results from disk one-by-one...")
+log_progress("(This avoids loading all chunks into RAM simultaneously)")
+
+model_data <- rbindlist(lapply(unlist(chunk_files), function(f) {
+  log_progress(sprintf("  Loading: %s", basename(f)))
+  chunk_data <- readRDS(f)
+  return(chunk_data)
+}))
 
 log_progress(sprintf("Combined data: %d rows", nrow(model_data)))
-
-# Clean up chunk progress files
-chunk_files <- list.files(OUTPUT_DIR, pattern = "chunk_.*_progress.txt", full.names = TRUE)
-file.remove(chunk_files)
-log_progress("Cleaned up chunk progress files")
 
 # ==============================================================================
 # ADD COVARIATES
@@ -389,6 +437,24 @@ metadata <- list(
 )
 saveRDS(metadata, file.path(OUTPUT_DIR, "metadata.rds"))
 log_progress("Saved metadata")
+
+# ==============================================================================
+# CLEANUP CHECKPOINTS (OPTIONAL)
+# ==============================================================================
+
+# Optionally remove checkpoint files after successful completion
+KEEP_CHECKPOINTS <- FALSE  # Set to TRUE to keep checkpoints
+
+if(!KEEP_CHECKPOINTS) {
+  log_progress("Removing checkpoint files...")
+  checkpoint_files <- list.files(CHECKPOINT_DIR, 
+                                 pattern = "^chunk_.*_result\\.rds$", 
+                                 full.names = TRUE)
+  file.remove(checkpoint_files)
+  log_progress(sprintf("Removed %d checkpoint files", length(checkpoint_files)))
+} else {
+  log_progress(sprintf("Checkpoint files preserved in: %s", CHECKPOINT_DIR))
+}
 
 # ==============================================================================
 # FINAL SUMMARY
