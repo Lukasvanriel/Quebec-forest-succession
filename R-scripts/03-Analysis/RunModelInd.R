@@ -21,8 +21,8 @@ OUTPUT_DIR <- here("Data-Output", "INLA-realResults-IND")
 PROGRESS_FILE <- file.path(OUTPUT_DIR, "fitting_log_ind.txt")
 
 # Model parameters
-N_TRANSITIONS <- 8      # How many transitions to fit (top N by event count)
-MIN_EVENTS <- 1000       # Minimum events required per transition
+N_TRANSITIONS <- 100      # How many transitions to fit (top N by event count)
+MIN_EVENTS <- 2000       # Minimum events required per transition
 INCLUDE_SOIL <- T     # Include soil as covariate? (risky - many levels)
 INCLUDE_PERT <- T     # Include perturbation as covariate?
 
@@ -312,23 +312,38 @@ fit_single_transition <- function(from_state, to_state, data,
     model = fit
   )
   
-  # Save individual model
+  # 1. Save the full model to disk (The "Heavy" lifting)
   saveRDS(results, 
           file.path(output_dir, sprintf("fit_%s.rds", 
                                         gsub("→", "_to_", transition_label))))
   
-  # Save individual model
-  saveRDS(results, 
-          file.path(output_dir, sprintf("fit_%s.rds", 
-                                        gsub("→", "_to_", transition_label))))
+  # Create a tiny summary data frame. 
+  summary_item <- data.frame(
+    Transition = transition_label,
+    From = from_state,
+    To = to_state,
+    N_events = n_events,
+    Alpha = results$alpha,
+    Alpha_SD = results$alpha_sd,
+    CMI_effect = results$cmi_effect,
+    CMI_SD = results$cmi_sd,
+    # Significance check: if the 95% CI doesn't cross zero
+    CMI_sig = (results$cmi_lower * results$cmi_upper > 0), 
+    Tmean_effect = results$tmean_effect,
+    Tmean_SD = results$tmean_sd,
+    Tmean_sig = (results$tmean_lower * results$tmean_upper > 0),
+    Convergence_OK = convergence_ok,
+    stringsAsFactors = FALSE
+  )
   
-  # Log completion
-  cat(sprintf("[%s] Completed: %s (%.1f min)\n",
-              format(Sys.time(), "%H:%M:%S"),
-              transition_label,
-              as.numeric(difftime(Sys.time(), start_time, units = "mins"))))
+  # 3. Log completion
+  cat(sprintf("[%s] Completed: %s\n", format(Sys.time(), "%H:%M:%S"), transition_label))
   
-  return(results)
+  # 4. Clean up the worker's RAM before returning
+  rm(results, fit, trans_data)
+  gc()
+  
+  return(summary_item) # <--- THIS IS NOW TINY
 }
 
 # ==============================================================================
@@ -347,7 +362,7 @@ log_progress(sprintf("Started: %s", Sys.time()))
 start_fit <- Sys.time()
 
 if(USE_PARALLEL) {
-  log_progress(sprintf("Using mclapply (fork-based) with %d cores...", N_CORES))
+  log_progress(sprintf("Using mclapply with %d cores...", N_CORES))
   
   results_list <- mclapply(1:nrow(transitions_to_fit), function(i) {
     fit_single_transition(
@@ -361,10 +376,13 @@ if(USE_PARALLEL) {
     )
   }, mc.cores = N_CORES)
   
-  # Check for errors
-  if(any(sapply(results_list, function(x) inherits(x, "try-error")))) {
-    log_progress("ERROR: One or more models failed to fit")
-  }
+  # Check for parallel errors (crashes)
+  any_errors <- sapply(results_list, function(x) inherits(x, "try-error"))
+  if(any(any_errors)) log_progress("Warning: Some cores encountered errors.")
+  
+  # Filter out NULLs and Errors, then combine the tiny data frames
+  results_list <- results_list[!sapply(results_list, function(x) is.null(x) || inherits(x, "try-error"))]
+  results_table <- do.call(rbind, results_list)
   
 } else {
   log_progress("Fitting transitions sequentially...")
@@ -435,76 +453,6 @@ log_progress(sprintf("CMI effects with SD > 1: %d / %d",
                      large_sd_cmi, length(results_list)))
 log_progress(sprintf("Tmean effects with SD > 1: %d / %d",
                      large_sd_tmean, length(results_list)))
-
-# ==============================================================================
-# EXTRACT RESULTS
-# ==============================================================================
-
-log_progress("\n=== EXTRACTING RESULTS ===")
-
-results_table <- do.call(rbind, lapply(results_list, function(res) {
-  data.frame(
-    Transition = res$transition,
-    From = res$from,
-    To = res$to,
-    N_events = res$n_events,
-    
-    # Shape parameter
-    Alpha = res$alpha,
-    Alpha_SD = res$alpha_sd,
-    Alpha_lower = res$alpha_lower,
-    Alpha_upper = res$alpha_upper,
-    
-    # Intercept
-    Beta0 = res$beta0,
-    Beta0_SD = res$beta0_sd,
-    Beta0_lower = res$beta0_lower,
-    Beta0_upper = res$beta0_upper,
-    
-    # CMI effect
-    CMI_effect = res$cmi_effect,
-    CMI_SD = res$cmi_sd,
-    CMI_lower = res$cmi_lower,
-    CMI_upper = res$cmi_upper,
-    CMI_sig = res$cmi_lower * res$cmi_upper > 0,
-    
-    # Temperature effect
-    Tmean_effect = res$tmean_effect,
-    Tmean_SD = res$tmean_sd,
-    Tmean_lower = res$tmean_lower,
-    Tmean_upper = res$tmean_upper,
-    Tmean_sig = res$tmean_lower * res$tmean_upper > 0,
-    
-    # Soil effects
-    Soil_Dry_effect = res$soil_dry_effect,
-    Soil_Dry_SD = res$soil_dry_sd,
-    Soil_Dry_lower = res$soil_dry_lower,
-    Soil_Dry_upper = res$soil_dry_upper,
-    Soil_Dry_sig = res$soil_dry_lower * res$soil_dry_upper > 0,
-    
-    Soil_Wet_effect = res$soil_wet_effect,
-    Soil_Wet_SD = res$soil_wet_sd,
-    Soil_Wet_lower = res$soil_wet_lower,
-    Soil_Wet_upper = res$soil_wet_upper,
-    Soil_Wet_sig = res$soil_wet_lower * res$soil_wet_upper > 0,
-    
-    # Pest effect
-    Pest_effect = res$pest_effect,
-    Pest_SD = res$pest_sd,
-    Pest_lower = res$pest_lower,
-    Pest_upper = res$pest_upper,
-    Pest_sig = res$pest_lower * res$pest_upper > 0,
-    
-    # Model fit
-    DIC = res$dic,
-    WAIC = res$waic,
-    
-    # Convergence
-    Convergence_OK = res$convergence_ok
-  )
-}))
-
-log_progress(sprintf("Extracted results for %d transitions", nrow(results_table)))
 
 # ==============================================================================
 # SAVE RESULTS
